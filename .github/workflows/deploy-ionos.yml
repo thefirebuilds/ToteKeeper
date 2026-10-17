@@ -15,14 +15,14 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
@@ -43,10 +43,10 @@ jobs:
           SFTP_REMOTE_DIR: ${{ secrets.SFTP_REMOTE_DIR }}
         run: |
           if [[ -z "$SFTP_REMOTE_DIR" ]]; then
-            SFTP_REMOTE_DIR="/totekeeper"
+            SFTP_REMOTE_DIR="./totekeeper"
           fi
-          if [[ ! "$SFTP_REMOTE_DIR" =~ ^/[A-Za-z0-9._/-]+$ || "$SFTP_REMOTE_DIR" == "/" || "$SFTP_REMOTE_DIR" == *".."* ]]; then
-            echo "SFTP_REMOTE_DIR must be a safe absolute directory path below the SFTP account root."
+          if [[ ! "$SFTP_REMOTE_DIR" =~ ^(\./)?[A-Za-z0-9._/-]+$ || "$SFTP_REMOTE_DIR" == "." || "$SFTP_REMOTE_DIR" == *".."* ]]; then
+            echo "SFTP_REMOTE_DIR must be a safe path below the SFTP account root, for example ./totekeeper."
             exit 1
           fi
           echo "SFTP_REMOTE_DIR=$SFTP_REMOTE_DIR" >> "$GITHUB_ENV"
@@ -57,6 +57,9 @@ jobs:
           SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
           SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
         run: |
+          : "${SFTP_HOST:?Set the SFTP_HOST GitHub Actions secret}"
+          : "${SFTP_USERNAME:?Set the SFTP_USERNAME GitHub Actions secret}"
+          : "${SFTP_PASSWORD:?Set the SFTP_PASSWORD GitHub Actions secret}"
           lftp -u "$SFTP_USERNAME","$SFTP_PASSWORD" "sftp://$SFTP_HOST" <<EOF
           set sftp:auto-confirm yes
           set cmd:fail-exit yes
