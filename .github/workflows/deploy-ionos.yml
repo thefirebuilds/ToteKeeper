@@ -1,0 +1,64 @@
+name: Deploy to IONOS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ionos-production-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build production site
+        run: npm run build
+
+      - name: Install SFTP deploy client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lftp
+
+      - name: Validate deployment target
+        env:
+          SFTP_REMOTE_DIR: ${{ secrets.SFTP_REMOTE_DIR }}
+        run: |
+          if [[ -z "$SFTP_REMOTE_DIR" ]]; then
+            SFTP_REMOTE_DIR="/totekeeper"
+          fi
+          if [[ ! "$SFTP_REMOTE_DIR" =~ ^/[A-Za-z0-9._/-]+$ || "$SFTP_REMOTE_DIR" == "/" || "$SFTP_REMOTE_DIR" == *".."* ]]; then
+            echo "SFTP_REMOTE_DIR must be a safe absolute directory path below the SFTP account root."
+            exit 1
+          fi
+          echo "SFTP_REMOTE_DIR=$SFTP_REMOTE_DIR" >> "$GITHUB_ENV"
+
+      - name: Upload production build to IONOS
+        env:
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
+          SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
+          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
+        run: |
+          lftp -u "$SFTP_USERNAME","$SFTP_PASSWORD" "sftp://$SFTP_HOST" <<EOF
+          set sftp:auto-confirm yes
+          set cmd:fail-exit yes
+          mirror --reverse --verbose --delete ./dist/ "$SFTP_REMOTE_DIR"
+          EOF
