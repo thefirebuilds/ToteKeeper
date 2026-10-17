@@ -43,10 +43,10 @@ jobs:
           SFTP_REMOTE_DIR: ${{ secrets.SFTP_REMOTE_DIR }}
         run: |
           if [[ -z "$SFTP_REMOTE_DIR" ]]; then
-            SFTP_REMOTE_DIR="./totekeeper"
+            SFTP_REMOTE_DIR="."
           fi
-          if [[ ! "$SFTP_REMOTE_DIR" =~ ^(\./)?[A-Za-z0-9._/-]+$ || "$SFTP_REMOTE_DIR" == "." || "$SFTP_REMOTE_DIR" == *".."* ]]; then
-            echo "SFTP_REMOTE_DIR must be a safe path below the SFTP account root, for example ./totekeeper."
+          if [[ "$SFTP_REMOTE_DIR" != "." && "$SFTP_REMOTE_DIR" != "./" && ( ! "$SFTP_REMOTE_DIR" =~ ^(\./)?[A-Za-z0-9._/-]+$ || "$SFTP_REMOTE_DIR" == *".."* ) ]]; then
+            echo "SFTP_REMOTE_DIR must be a safe path in the SFTP login directory, for example . or ./some-subdirectory."
             exit 1
           fi
           echo "SFTP_REMOTE_DIR=$SFTP_REMOTE_DIR" >> "$GITHUB_ENV"

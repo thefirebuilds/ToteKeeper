@@ -34,9 +34,9 @@ The workflow at `.github/workflows/deploy-ionos.yml` builds the site and uploads
 - `SFTP_HOST`: IONOS SFTP host.
 - `SFTP_USERNAME`: IONOS SFTP username.
 - `SFTP_PASSWORD`: IONOS SFTP password.
-- `SFTP_REMOTE_DIR`: optional path to this site's deploy directory. It defaults to `./totekeeper`, matching the directory created in the SFTP account root. Since no domain is connected yet, browse the site at the host's corresponding `/totekeeper/` path if that host serves the account root. Set this secret only if IONOS requires a different path relative to the SFTP account root.
+- `SFTP_REMOTE_DIR`: optional path relative to the SFTP login directory. It defaults to `.`, because the new IONOS login opens directly inside the `totekeeper` website directory. Set this secret only if the deploy files should go into a subdirectory of that login's starting directory.
 
-The deployment mirrors the generated site with `--delete`, so `./totekeeper` must be dedicated to this website. The workflow refuses the account root and path-traversing targets. `public/.htaccess` is included in the build to route React Router paths back to `index.html` on IONOS Apache hosting. The workflow does not deploy the repository, source files, or secrets. When you connect a domain later, point its document root to this folder or update `SFTP_REMOTE_DIR` if IONOS requires a different target path.
+The deployment mirrors the generated site with `--delete` into the SFTP login's starting directory. This is safe only because that login is restricted to the dedicated `totekeeper` website folder; do not reuse the login for unrelated site files. `public/.htaccess` is included in the build to route React Router paths back to `index.html` on IONOS Apache hosting. The workflow does not deploy the repository, source files, or secrets. When you connect a domain later, point its document root to this `totekeeper` folder or update `SFTP_REMOTE_DIR` if IONOS requires a different target path.
 
 ## What is implemented
 
