@@ -3,7 +3,7 @@ import type Stripe from 'stripe'
 import { POLICY } from '../src/config/commercial.ts'
 import { createPackage, planFor, quoteOrder, requestCancellation, reserveLeg, standardEnvelope, validateAppointment } from '../src/domain/operations.ts'
 import { authorizeRecord } from '../src/services/integrationPorts.ts'
-import { resolvePrice } from './catalog.ts'
+import { packagePriceKey, resolvePrice } from './catalog.ts'
 import { assertTest, stripeId } from './stripe.ts'
 import type { Actor, OrderInput, PaymentOrder, PaymentRepository, PurchaseUnit, Readiness, SandboxState } from './model.ts'
 
@@ -34,7 +34,7 @@ export class PurchaseCoordinator {
     return this.repo.transaction(s => {
       const previous = Object.values(s.orders).find(order => order.customerId === actor.id && order.requestKey === input.requestKey)
       if (previous) { if (previous.fingerprint !== fingerprint) throw new Error('Retry key already belongs to another order.'); return previous }
-      const units: PurchaseUnit[] = input.packages.map(selection => ({ id: randomUUID(), kind: 'Package', packageId: randomUUID(), selection, bulky: [], lines: [], prices: [`totekeeper_${selection.planId}_${selection.billing}_usd_v1`], amountCents: (selection.billing === 'annual' ? planFor(selection.planId).annualPrice : planFor(selection.planId).monthlyPrice) * 100, state: 'Not started', attempt: 0 }))
+      const units: PurchaseUnit[] = input.packages.map(selection => ({ id: randomUUID(), kind: 'Package', packageId: randomUUID(), selection, bulky: [], lines: [], prices: [packagePriceKey(selection.planId, selection.billing)], amountCents: (selection.billing === 'annual' ? planFor(selection.planId).annualPrice : planFor(selection.planId).monthlyPrice) * 100, state: 'Not started', attempt: 0 }))
       for (const item of input.bulky) {
         const record = { ...item, id: randomUUID() }
         if (item.packageIndex !== undefined) {

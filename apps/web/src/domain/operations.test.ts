@@ -9,9 +9,9 @@ const make = (id = 'P1', billing: 'annual' | 'monthly' = 'annual') => createPack
 describe('package policies', () => {
   it('quotes independent package prices and the supplied monthly equivalents', () => {
     const quote = quoteOrder([selection, { planId: 'big', billing: 'annual', large: 6, xl: 2 }], [], 'Fictional Buda address')
-    expect(quote.annualTotal).toBe(724)
+    expect(quote.annualTotal).toBe(524)
     expect(quote.canPay).toBe(false)
-    expect([125, 299, 599].map(formatMonthlyEquivalent)).toEqual(['$10.42', '$24.92', '$49.92'])
+    expect([125, 225, 399].map(formatMonthlyEquivalent)).toEqual(['$10.42', '$18.75', '$33.25'])
     expect(() => validateMix({ ...selection, large: 1, xl: 1 })).toThrow('allowance')
     expect(() => validateMix({ ...selection, large: 1.5 })).toThrow('whole')
     expect(validateMix({ ...selection, large: 0, xl: 1 })).toBe(2)
@@ -56,8 +56,8 @@ describe('package policies', () => {
     expect(() => registerBonus(pkg, 'B2')).toThrow()
     expect(() => registerBonus(createPackage('M', 'C1', 'big', 'monthly', '2026-03-01T12:00:00Z'), 'B')).toThrow()
     const quote = quoteOrder([{ planId: 'big', billing: 'annual', large: 10, xl: 0 }], [{ type: 'Bagged artificial tree', dimensions: [54, 24, 24], value: 100, packageIndex: 0, useBonus: true }, { type: 'Bundled oars', dimensions: [50, 6, 6], value: 90, packageIndex: 0, useBonus: false }, { type: 'Snowboard bag', dimensions: [54, 10, 6], value: 100, useBonus: false }], 'Fictional address')
-    expect(quote.annualTotal).toBe(799)
-    expect(quote.lines.map(line => line.amount)).toEqual([599, 0, 75, 125])
+    expect(quote.annualTotal).toBe(599)
+    expect(quote.lines.map(line => line.amount)).toEqual([399, 0, 75, 125])
   })
   it('does not price custom-quote items automatically or collect an invented monthly setup fee', () => {
     const quote = quoteOrder([{ ...selection, billing: 'monthly' }], [{ type: 'Bagged artificial tree', dimensions: [55, 24, 24], value: 100, useBonus: false }], 'Fictional address')

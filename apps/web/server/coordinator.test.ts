@@ -3,7 +3,7 @@ import Stripe from 'stripe'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { CATALOG, syncCatalog } from './catalog.ts'
+import { CATALOG, packagePriceKey, syncCatalog } from './catalog.ts'
 import { PurchaseCoordinator } from './coordinator.ts'
 import { SqlitePaymentRepository } from './repository.ts'
 import { STRIPE_API_VERSION, stripeClient } from './stripe.ts'
@@ -75,6 +75,13 @@ function fixture(path = ':memory:') {
 }
 
 describe('Stripe sandbox purchase coordinator', () => {
+  it('uses new annual Prices without repricing persisted v1 package purchases', () => {
+    expect(packagePriceKey('medium', 'annual')).toBe('totekeeper_medium_annual_usd_v2')
+    expect(packagePriceKey('big', 'annual')).toBe('totekeeper_big_annual_usd_v2')
+    expect(CATALOG.find(entry => entry.key === packagePriceKey('big', 'annual'))?.amount).toBe(39900)
+    expect(CATALOG.find(entry => entry.key === 'totekeeper_big_annual_usd_v1')?.amount).toBe(59900)
+    expect(CATALOG.find(entry => entry.key === 'totekeeper_medium_annual_usd_v1')?.amount).toBe(29900)
+  })
   it.each(['small', 'medium', 'big'] as const)('activates annual %s only after authoritative payment', async plan => {
     const f = fixture(); const order = f.coordinator.saveOrder(customer, input(plan)); f.approve(order.id)
     const next = await f.coordinator.next(customer, order.id)
@@ -155,7 +162,7 @@ describe('Stripe sandbox purchase coordinator', () => {
     const item = { type: 'Snowboard bag' as const, dimensions: [50, 10, 6] as [number, number, number], value: 100 }
     draft.bulky = [{ ...item, packageIndex: 0, useBonus: true }, { ...item, packageIndex: 0, useBonus: false }, { ...item, packageIndex: 0, useBonus: false }, { ...item, useBonus: false }]
     const order = f.coordinator.saveOrder(customer, draft); f.approve(order.id)
-    expect(order.units.map(unit => unit.amountCents)).toEqual([74900, 12500])
+    expect(order.units.map(unit => unit.amountCents)).toEqual([54900, 12500])
     await f.coordinator.next(customer, order.id)
     expect(f.calls[0].params.line_items).toHaveLength(2)
     expect(f.calls[0].params.line_items![1].quantity).toBe(2)
