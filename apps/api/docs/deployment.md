@@ -4,6 +4,8 @@ No infrastructure has been created. This is a manual GitHub-to-droplet process w
 
 Configuration follows the [Django deployment checklist](https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/). Login limiting uses [Django Axes](https://django-axes.readthedocs.io/en/stable/).
 
+This version adds allauth, Stripe, private photo blobs and a maintenance worker. Read [provider/commercial setup](providers-and-policies.md) and [security/retention](security.md) before enabling enrollment. Set `PUBLIC_BASE_URL` to the stable HTTPS portal URL, supply a separate persistent `MFA_ENCRYPTION_KEY`, Stripe secret/webhook/portal configuration, real business contact details and the service timezone. Run `python manage.py check_launch` after configuring approved database records. Back up the MFA encryption key separately and securely; restored database secrets cannot be decrypted without the original key.
+
 ## First deployment
 
 1. Push reviewed code and require a passing Backend CI run. Clone on the droplet and check out an approved commit SHA/tag. Record that revision.
@@ -22,12 +24,16 @@ docker compose -f compose.yaml -f compose.production.yaml up -d --wait
 
 Static assets are collected into the image at build and served by WhiteNoise. Caddy obtains/renews HTTPS certificates and persists them in `caddy_data`. PostgreSQL persists in `postgres_data`. Keep the Compose directory/project name stable or set `COMPOSE_PROJECT_NAME` so releases reuse the same database volume. Never run `down -v` in production.
 
+The worker is required: it expires unpaid holds/credits every 30 seconds, processes notification jobs, and reconciles recent Stripe events every five minutes. Monitor worker liveness, unsent notification jobs, webhook retries, open refund-review support cases, database disk and public health. Schedule `python manage.py clearsessions` daily. Do not scale the worker until its throughput/locking behavior is measured. Staff must verify email and complete real MFA after provisioning before entering Octagon/admin; create no default production accounts.
+
 5. Verify the public HTTPS `/health/`, login, customer isolation, one request lifecycle and real SMTP password reset. Check HTTP-to-HTTPS redirects and Secure session/CSRF cookies. Use a fictional test customer and suspend it afterward. Demo seeding is prohibited in production.
 6. Replace branding in base/login/reset templates and `storage/admin.py`. Business messaging and actual terms remain the operator's responsibility; no insurance promises or legal agreements are supplied.
 
 Production refuses incomplete required settings at import. `check --deploy` may warn about HSTS subdomains/preload: these are deliberately disabled until HTTPS is controlled for every related subdomain. Review rather than automatically enabling them. Monitor public HTTPS health and database disk space externally.
 
 ## Releases
+
+Stop the **worker as well as app/proxy** before schema-changing migrations or restore/cutover. Restart all three after migrations. Private photos are stored in the database and included in dumps; account for their size. The migrations are additive and backfill existing accounts without activating paid plans. Review legacy subscriptions/requests before any commercial migration; no provider subscriptions are created by migrations.
 
 Retain the previous revision/image and back up before migrations. Pull an approved revision, build, inspect migration plans, migrate and recreate services under the same Compose project. Announce a short maintenance window and stop app/proxy before schema-changing migrations, keeping the database running. Check health, login and a service request afterward. Never log form bodies, passwords, reset tokens or customer addresses while debugging. Access logs are disabled for Caddy/Gunicorn; Django request and Axes loggers are silenced. Console email is for fictional local data only.
 

@@ -1,0 +1,41 @@
+# Providers and launch decisions
+
+## Authentication
+
+Uses [django-allauth](https://docs.allauth.org/en/latest/installation/quickstart.html) with mandatory email verification, TOTP/recovery codes, [WebAuthn/passkeys](https://docs.allauth.org/en/latest/mfa/configuration.html) and session management. No authentication cryptography is implemented here. Stored MFA secrets are encrypted using the provider adapter and a separately supplied Fernet key from `cryptography`.
+
+Generate `MFA_ENCRYPTION_KEY` using `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`. Keep it outside Git and back it up separately from the database. Losing it prevents existing TOTP secrets from being decrypted. Changing it requires a deliberate key migration; do not casually regenerate it on each release. A known development-only key is used only with DEBUG when no key is supplied.
+
+Configure SMTP and the stable HTTPS portal origin before testing real verification/recovery emails or passkeys. Passkeys are bound to the hostname. Test registration, email confirmation, password reset, actual TOTP, recovery-code use and a browser/hardware-backed passkey before launch. Staff cannot remove their last strong factor. There is no public staff invitation or MFA-reset shortcut. See the recovery procedure in security.md.
+
+## Stripe
+
+Uses the [official Python SDK](https://docs.stripe.com/sdks), [hosted Checkout](https://docs.stripe.com/api/checkout/sessions/create), [Customer Portal](https://docs.stripe.com/customer-management) and [signed webhooks](https://docs.stripe.com/webhooks). API version is pinned to `2026-02-25.clover`, matching installed SDK 14.4.1. Use a **snapshot event** destination with that version. Stripe Connect is not used.
+
+1. Configure test-mode `STRIPE_SECRET_KEY`, canonical `PUBLIC_BASE_URL`, and `STRIPE_WEBHOOK_SECRET`. Locally, use Stripe CLI `stripe listen --forward-to localhost:8000/stripe/webhook/` and set its displayed signing secret in the app environment. Do not paste keys into logs or source.
+2. Create approved recurring Prices in Stripe with the correct currency, unit amount, interval and quantity-one semantics. Create a one-time extra-delivery Price where applicable. Map the IDs in an Offering record. The application retrieves each Price before checkout and rejects mismatched price/interval/currency. No prices or products are created automatically.
+3. Review tax with the business and its adviser. Set each offering to `automatic` only after Stripe Tax registrations, locations and tax behavior are configured, or explicitly select reviewed `none`. `unreviewed` blocks enrollment. The application does not decide where tax is owed. Checkout displays the final total; invoice preview is estimated and shows available taxes, discounts and provider line items.
+4. Configure the Stripe Customer Portal and set `STRIPE_PORTAL_CONFIGURATION`. Enable payment methods, invoice history and cancellation **at period end**. Initially disable unrestricted plan/quantity changes; configure approved transitions deliberately. An unexpected provider price or quantity change is recorded as `offering_review_required` and blocks new service entitlements until reviewed. Do not change accepted contract snapshots by editing catalog rows.
+5. Subscribe to `checkout.session.completed`, `checkout.session.expired`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `customer.subscription.created/updated/deleted`, `invoice.paid`, `invoice.payment_failed`, `invoice.updated`, and `charge.refunded`.
+6. Test real sandbox Checkout, abandoned/expired Checkout, asynchronous failure/success, renewals, refunds, duplicates, reordered events and portal cancellation. Signed events are deduplicated and processed with account locks; current provider objects are retrieved so older deliveries do not regress payment state. Unknown provider customers never link themselves to an internal account through metadata.
+
+The worker replays the last 7 days of provider events every five minutes; `python manage.py reconcile_stripe --days 30` supports manual recovery within Stripe's event retention window. Monitor webhook retries and reconciliation failures. For older gaps, perform a reviewed provider/account reconciliation; historical migration is not automated. Stored event records contain IDs/types/outcomes, not raw customer/payment payloads.
+
+## Explicit MVP credit/scheduling policy mechanics
+
+These are configurable implementation mechanics, not invented commercial terms. Publish only offerings/policies that the business has approved:
+
+- Each offering must explain exactly what a delivery credit represents and how many are required per pickup/return/exchange visit. Storage units are separate from transportation credits. The homepage's tote-size credits were not assumed to mean delivery credits.
+- Storage units per inventory item are maintained by staff (default one), with oversized approval required. The server checks stored/transit inventory and queued pickups against the accepted allowance, accounting for returns in the same exchange. Overages are blocked for staff review, not automatically priced. Confirm size/unit assignments and allocation rules before launch.
+- Credits are granted once per paid subscription-create/cycle invoice. Validity is configured in days and capped to the paid period when carryover is disabled. Carryover enabled extends validity from the paid-period end by the configured days. No separate cron job creates renewal credits without payment.
+- If enough credits exist, the full visit cost is reserved. If not, no partial included credit is spent: the customer sees the configured additional visit charge and can buy the full visit through Checkout. Confirm this all-or-extra mechanic before launch.
+- Additional purchased credits have the offering's configured validity. A locally expired/canceled hold is never revived by late payment: payment produces an available credit for future scheduling. The customer is told this before paying. The business must approve this behavior and its refund handling before launch.
+- Unpaid capacity holds last 30 minutes; the worker releases them at most about 30 seconds after expiry. Requested included-credit visits hold their capacity until staff confirmation/cancellation. Capacity is counted per discrete window. Do not create overlapping windows that represent the same physical resource: cross-window resource/route optimization is outside this MVP.
+- Lead time and online cancellation cutoff are configured per window, as is its blackout flag. Service areas use an explicit postal-code allowlist; this is not geocoding, street validation or a guaranteed serviceability promise. Staff must approve oversized items. Confirm these availability rules with the operator before enabling sales.
+- Credits are consumed on completion and released on canceled/unable-to-complete visits. Expired credits do not revive on release. Cash refunds are separate. Full purchased-service refunds remove unused credits and cancel eligible requests; consumed or partial refunds require staff review and an audited credit adjustment. No automatic refund promise is made.
+- Every refund sets an account billing-review hold, blocks new bookings and opens a support case. Administrators reconcile partial/consumed credits and pending fulfillment, then clear the Account hold with an approved case/reason. Automatic invoice updates do not clear this review hold.
+- End-of-period subscription cancellation never closes the service account, retires inventory or authorizes disposal. Return logistics after cancellation are arranged through Help/staff under the accepted policy. Outstanding invoices and booked services remain separately visible.
+
+## Commercial decisions still required
+
+Supply real offering prices/currencies/intervals, recurring charges, capacity, storage-unit definitions and oversized restrictions; approve credit renewal/carryover/expiry, unsuccessful-visit charges, refunds, late-payment behavior and hold duration; approve cancellation/final billing/property-return terms; review tax; configure real contact details, service areas, windows and staffing. No production offering, service promise, insurance coverage, refund policy or legal terms were invented.

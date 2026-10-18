@@ -1,0 +1,1 @@
+{% extends 'portal/base.html' %}{% block content %}<section class="card form-panel"><h1>{{ title }}</h1><form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">Save</button></form></section>{% endblock %}

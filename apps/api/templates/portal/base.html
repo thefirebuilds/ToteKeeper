@@ -1,0 +1,51 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}ToteKeeper · Your storage{% endblock %}</title>
+  <link rel="icon" href="{% static 'brand/mark.svg' %}" type="image/svg+xml">
+  <link rel="stylesheet" href="{% static 'tokens.css' %}">
+  <link rel="stylesheet" href="{% static 'totekeeper.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+{% if development_mode %}<div class="notice" role="note">Development environment. Fixture subscriptions, credits and service windows are not real purchases or confirmed service.</div>{% endif %}
+<header class="topbar">
+  <a class="brand" href="{% url 'dashboard' %}">
+    <img src="{% static 'brand/mark.svg' %}" alt="" width="40" height="40">
+    <span><strong>ToteKeeper</strong><small>KEEP THE THINGS. RECLAIM THE SPACE.</small></span>
+  </a>
+  <div class="top-actions">
+    {% if user.is_authenticated %}
+      <span>{{ user.get_username }}</span>
+      <form action="{% url 'account_logout' %}" method="post">{% csrf_token %}<button class="link">Sign out</button></form>
+    {% else %}
+      <a href="{% url 'account_login' %}">Sign in</a><a href="{% url 'account_signup' %}">Create account</a>
+    {% endif %}
+  </div>
+</header>
+<div class="shell">
+  <aside class="sidebar">
+    <nav aria-label="Portal">
+      <a href="{% url 'dashboard' %}" {% if request.path == '/' %}aria-current="page"{% endif %}>Overview</a>
+      {% if user.is_staff or user.is_superuser %}
+        <a href="{% url 'staff' %}">Octagon console</a><a href="/admin/">Administration</a>
+      {% else %}
+        <a href="{% url 'inventory' %}">Inventory</a><a href="{% url 'deliveries' %}">Deliveries</a>
+        <a href="{% url 'billing' %}">Billing</a><a href="{% url 'profile' %}">Account &amp; Security</a><a href="{% url 'help' %}">Help / Contact</a>
+      {% endif %}
+    </nav>
+    <div class="sidebar-note"><h3>A little more room.</h3><p class="muted">Your belongings, one tidy place to keep track of them.</p></div>
+  </aside>
+  <main id="main">
+    {% for message in messages %}<div class="notice" role="status">{{ message }}</div>{% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+<footer>ToteKeeper customer portal · Powered by Octagon<br>Appointments shown in {{ service_timezone }} time.</footer>
+{% block extra_body %}{% endblock %}
+</body>
+</html>

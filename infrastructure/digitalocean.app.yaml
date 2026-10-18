@@ -1,0 +1,75 @@
+# Preparation template only. Replace example domains and supply runtime secrets before use.
+name: totekeeper
+region: nyc
+static_sites:
+  - name: web
+    github:
+      repo: thefirebuilds/ToteKeeper
+      branch: main
+      deploy_on_push: false
+    source_dir: apps/web
+    environment_slug: node-js
+    build_command: npm ci && npm run build
+    output_dir: dist
+    catchall_document: index.html
+services:
+  - name: api
+    github:
+      repo: thefirebuilds/ToteKeeper
+      branch: main
+      deploy_on_push: false
+    source_dir: apps/api
+    dockerfile_path: apps/api/Dockerfile
+    http_port: 8000
+    health_check:
+      http_path: /health/
+    instance_count: 1
+workers:
+  - name: worker
+    github:
+      repo: thefirebuilds/ToteKeeper
+      branch: main
+      deploy_on_push: false
+    source_dir: apps/api
+    dockerfile_path: apps/api/Dockerfile
+    run_command: python manage.py run_jobs
+    instance_count: 1
+jobs:
+  - name: migrate
+    kind: PRE_DEPLOY
+    github:
+      repo: thefirebuilds/ToteKeeper
+      branch: main
+      deploy_on_push: false
+    source_dir: apps/api
+    dockerfile_path: apps/api/Dockerfile
+    run_command: python manage.py migrate --noinput
+# Replace both domains and configure them in App Platform before deployment.
+# Portal host keeps all Django-generated URLs, sessions and callback URLs intact.
+ingress:
+  rules:
+    - match:
+        authority:
+          exact: portal.example.invalid
+        path:
+          prefix: /
+      component:
+        name: api
+        preserve_path_prefix: true
+    - match:
+        path:
+          prefix: /api
+      component:
+        name: api
+        preserve_path_prefix: true
+    - match:
+        path:
+          prefix: /stripe/webhook
+      component:
+        name: api
+        preserve_path_prefix: true
+    - match:
+        path:
+          prefix: /
+      component:
+        name: web

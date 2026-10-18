@@ -1,4 +1,8 @@
 services:
+  worker:
+    environment:
+      DEBUG: 'false'
+      USE_SQLITE: 'false'
   app:
     environment:
       DEBUG: 'false'

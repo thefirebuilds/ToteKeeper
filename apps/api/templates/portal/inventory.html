@@ -1,0 +1,1 @@
+{% extends 'portal/base.html' %}{% block content %}<div class="heading"><div><p class="eyebrow">A home for your things</p><h1>Your inventory</h1><p>Registered items are not in storage until our team receives them.</p></div><a class="button" href="{% url 'item-new' %}">Register an item</a></div>{% include 'portal/inventory_table.html' %}{% endblock %}

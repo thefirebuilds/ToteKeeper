@@ -1,0 +1,17 @@
+/* Extracted from the ToteKeeper homepage, 2026-10-18. See docs/design.md. */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap');
+:root {
+  --cream: #f5f1e8;
+  --cream-dark: #eee8dc;
+  --navy: #244681;
+  --navy-dark: #192f59;
+  --blue: #8da9e5;
+  --blue-pale: #e0e8f8;
+  --accent: #3e63b8;
+  --gold: #d99d49;
+  --ink: #243652;
+  --muted: #5f6a83;
+  --line: #dcd8ce;
+  --white: #fffefa;
+  --serif: 'DM Serif Display', Georgia, serif;
+}

@@ -1,5 +1,7 @@
 # Stripe sandbox integration
 
+Run all commands here from `apps/web/`. This optional local server remains separate from Django and is not deployed by the App Platform specification.
+
 This extends the existing storefront, multi-package enrollment and Octagon policy scaffold. It does not replace the app, deploy a backend, activate real customers, or connect Stripe Connect. The merchant is ToteKeeper alone. Subscription invoices come from Billing; no standalone Invoicing creation flow was added.
 
 ## Modes and actual verification

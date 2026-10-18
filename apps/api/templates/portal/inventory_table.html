@@ -1,0 +1,3 @@
+<div class="table-wrap"><table><thead><tr><th scope="col">Item</th><th scope="col">Type</th><th scope="col">Status</th><th scope="col">Details &amp; photos</th></tr></thead><tbody>
+{% for item in inventory %}<tr><td><strong>{{ item.nickname|default:item.label }}</strong><br><small>{{ item.label }}</small></td><td>{{ item.get_item_type_display }}</td><td><span class="badge">{{ item.get_status_display }}</span></td><td><a href="{% url 'item' item.pk %}">View item &amp; uploaded photos →</a></td></tr>{% empty %}<tr><td colspan="4">No inventory registered. Add your totes or submit an oversized item for approval.</td></tr>{% endfor %}
+</tbody></table></div>

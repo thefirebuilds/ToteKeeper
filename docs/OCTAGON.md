@@ -2,7 +2,7 @@
 
 The standalone backend is being built separately. No HTTP endpoints are assumed. Types/tests here are a policy handoff, not production authentication, signature verification, database persistence or legal agreement acceptance.
 
-The [separate local Stripe sandbox](STRIPE.md) now implements signed raw-body verification with the official SDK, a sequential hosted-purchase coordinator and durable SQLite test storage. Its `/api/sandbox/*` endpoints belong to this repository's local server; they are not claims about an existing external Octagon API. Production Octagon must replace the sandbox authentication/repository adapters and connect fulfillment/notification delivery. `integrationPorts.ts` remains the provider-neutral handoff; `server/coordinator.ts` is the concrete sequential Stripe implementation rather than the older one-event/all-packages activation example.
+The [separate local Stripe sandbox](STRIPE.md) now implements signed raw-body verification with the official SDK, a sequential hosted-purchase coordinator and durable SQLite test storage. Its `/api/sandbox/*` endpoints belong to this repository's local server; they are not claims about an existing external Octagon API. Production Octagon must replace the sandbox authentication/repository adapters and connect fulfillment/notification delivery. `integrationPorts.ts` remains the provider-neutral handoff; `apps/web/server/coordinator.ts` is the concrete sequential Stripe implementation rather than the older one-event/all-packages activation example.
 
 ## Operational records
 

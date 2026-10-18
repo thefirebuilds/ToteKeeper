@@ -1,0 +1,45 @@
+name: Web CI
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+  connectivity:
+    runs-on: ubuntu-latest
+    env:
+      DEBUG: 'true'
+      USE_SQLITE: 'true'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: npm --prefix apps/web ci
+      - run: pip install -r apps/api/requirements.lock
+      - run: python apps/api/manage.py migrate --noinput
+      - name: Verify development proxy
+        run: |
+          npm run dev &
+          dev_pid=$!
+          trap 'kill "$dev_pid" 2>/dev/null || true' EXIT
+          curl --fail --retry 20 --retry-delay 1 --retry-connrefused http://127.0.0.1:5173/api/health/
+          npm run check:connectivity

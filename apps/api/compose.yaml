@@ -15,6 +15,7 @@ services:
     restart: unless-stopped
   app:
     build: .
+    image: octagon-app:${APP_VERSION:-local}
     env_file: .env
     environment:
       POSTGRES_HOST: db
@@ -28,6 +29,16 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    restart: unless-stopped
+  worker:
+    image: octagon-app:${APP_VERSION:-local}
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+    command: [python, manage.py, run_jobs]
+    depends_on:
+      app:
+        condition: service_healthy
     restart: unless-stopped
 volumes:
   postgres_data:

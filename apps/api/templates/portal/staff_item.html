@@ -1,0 +1,5 @@
+{% extends 'portal/base.html' %}{% block title %}Octagon · Inventory operations{% endblock %}{% block content %}
+<h1>{{ item.label }} · {{ item.nickname }}</h1><p><span class="badge">{{ item.get_status_display }}</span></p>
+<p>Physical movements are controlled by the assigned delivery workflow. This form cannot change ownership, prices or operational status.</p>
+<section class="card form-panel"><form method="post">{% csrf_token %}<p><label for="location">Warehouse location</label><input id="location" name="location" maxlength="160" value="{{ item.location }}"></p><p><label for="seal">Seal number</label><input id="seal" name="seal_number" maxlength="100" value="{{ item.seal_number }}"></p><button>Save operational details</button></form></section>
+<h2>Customer reference photos</h2><div class="photos">{% for image in photos %}<img src="{% url 'photo' image.key %}" alt="Customer reference for {{ item.label }}" loading="lazy">{% empty %}<p>No customer photos.</p>{% endfor %}</div>{% endblock %}

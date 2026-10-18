@@ -7,3 +7,6 @@ __pycache__
 *.sqlite3
 staticfiles
 backups
+.aws
+.codex
+.agents

@@ -52,6 +52,7 @@ def tote_id():
 
 class Tote(models.Model):
     class Status(models.TextChoices):
+        REGISTERED = 'registered', 'Registered · not yet collected'
         WITH_CUSTOMER = 'with_customer', 'With customer'
         PICKUP = 'pickup_scheduled', 'Pickup scheduled'
         TRANSIT = 'in_transit', 'In transit'
@@ -70,6 +71,11 @@ class Tote(models.Model):
     declared_value = models.DecimalField(max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(0)])
     admin_notes = models.TextField(blank=True)
 
+    item_type = models.CharField(max_length=12, choices=[('tote', 'Tote'), ('oversized', 'Oversized item')], default='tote')
+    oversized_approved = models.BooleanField(default=False)
+    storage_units = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)])
+    visible_notes = models.TextField(blank=True)
+
     def clean(self):
         if self.customer_id and self.customer.status != 'active':
             raise ValidationError('Totes can only be assigned to active customers.')
@@ -78,6 +84,7 @@ class Tote(models.Model):
         if self.pk:
             old = Tote.objects.get(pk=self.pk)
             transitions = {
+                self.Status.REGISTERED: {self.Status.WITH_CUSTOMER, self.Status.TRANSIT, self.Status.RETIRED},
                 self.Status.WITH_CUSTOMER: {self.Status.TRANSIT, self.Status.RETIRED},
                 self.Status.TRANSIT: {self.Status.WITH_CUSTOMER, self.Status.STORAGE},
                 self.Status.STORAGE: {self.Status.TRANSIT, self.Status.RETIRED},
@@ -85,7 +92,7 @@ class Tote(models.Model):
             }
             if old.status != self.status and self.status not in transitions.get(old.status, set()):
                 raise ValidationError('Invalid tote status transition. Scheduled statuses are managed through requests.')
-            if (old.customer_id != self.customer_id or old.status != self.status) and self.request_items.filter(request__status__in=['requested', 'confirmed']).exists():
+            if (old.customer_id != self.customer_id or old.status != self.status) and (self.request_items.filter(request__status__in=['requested', 'confirmed']).exists() or self.delivery_items.filter(delivery__status__in=['requested', 'awaiting_payment', 'confirmed', 'in_progress']).exists()):
                 raise ValidationError('Use the request workflow while this tote has an active request.')
             if old.customer_id != self.customer_id and old.status not in [self.Status.WITH_CUSTOMER, self.Status.RETIRED]:
                 raise ValidationError('Only totes with the customer or retired totes may be reassigned.')
@@ -127,9 +134,25 @@ class Activity(models.Model):
     record_id = models.PositiveBigIntegerField()
     action = models.CharField(max_length=200)
     details = models.JSONField(default=dict)
+    actor_type = models.CharField(max_length=20, default='system')
+    account_id = models.PositiveBigIntegerField(null=True)
+    outcome = models.CharField(max_length=20, default='success')
+    before = models.JSONField(default=dict)
+    after = models.JSONField(default=dict)
+    correlation_id = models.UUIDField(default=uuid.uuid4)
+    provider_event_id = models.CharField(max_length=160, blank=True)
+    reason = models.CharField(max_length=300, blank=True)
 
     class Meta:
         ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            raise ValidationError('Audit events are append-only.')
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError('Audit events are append-only.')
 
 
 class ToteHistory(models.Model):

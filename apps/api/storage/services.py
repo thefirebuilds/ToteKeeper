@@ -6,11 +6,16 @@ from .models import Activity, Customer, RequestItem, ServiceRequest, Tote, ToteH
 
 
 def audit(actor, record, action, details=None):
-    Activity.objects.create(actor=actor, record_type=record._meta.model_name, record_id=record.pk, action=action, details=details or {})
+    from portal.audit import record as audit_record
+    from portal.models import Account
+    customer_id = getattr(record, 'customer_id', None)
+    account_id = Account.objects.filter(customer_id=customer_id).values_list('pk', flat=True).first() if customer_id else None
+    audit_record(actor, record, action, account=account_id, after=details)
 
 
 def staff(actor):
-    if not actor.is_active or not actor.is_staff:
+    from portal.permissions import role
+    if role(actor) != 'administrator':
         raise PermissionDenied
 
 
@@ -95,6 +100,8 @@ def transition_request(actor, request_id, target, appointment=None):
             raise ValidationError('Resolve in-transit totes before canceling.')
         next_status = initial
     for tote in totes:
+        if tote.delivery_items.filter(delivery__status__in=['requested', 'awaiting_payment', 'confirmed', 'in_progress']).exists():
+            raise ValidationError('Use the Octagon delivery workflow for this inventory.')
         if tote.status != next_status:
             tote.status = next_status
             if next_status == Tote.Status.WITH_CUSTOMER:
@@ -120,6 +127,8 @@ def bulk_move(actor, tote_ids, target):
         raise ValidationError('Select existing totes.')
     for tote in totes:
         active = tote.request_items.filter(request__status__in=['requested', 'confirmed'])
+        if tote.delivery_items.filter(delivery__status__in=['requested', 'awaiting_payment', 'confirmed', 'in_progress']).exists():
+            raise ValidationError('Use the Octagon delivery workflow for this inventory.')
         if active.exists():
             if target != Tote.Status.TRANSIT or tote.status not in [Tote.Status.PICKUP, Tote.Status.RETURN] or not active.filter(request__status='confirmed').exists():
                 raise ValidationError('Use the request completion/cancellation workflow for active requests.')

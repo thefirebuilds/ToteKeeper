@@ -1,34 +1,14 @@
 {
-  "name": "totekeeper",
+  "name": "totekeeper-monorepo",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && tsc -p tsconfig.server.json && vite build",
-    "typecheck": "tsc -b --pretty && tsc -p tsconfig.server.json",
-    "lint": "oxlint",
-    "preview": "vite preview",
-    "test": "vitest run",
-    "sandbox:server": "tsx server/index.ts",
-    "stripe:catalog": "tsx server/setup.ts",
-    "stripe:portal": "tsx server/setup.ts --portal"
-  },
-  "dependencies": {
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "react-router-dom": "^7.18.4",
-    "stripe": "23.0.0"
-  },
-  "devDependencies": {
-    "@types/node": "^24.13.3",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.7",
-    "@vitejs/plugin-react": "^6.1.1",
-    "oxlint": "^1.81.0",
-    "tsx": "4.23.15",
-    "typescript": "~6.0.2",
-    "vite": "^8.3.0",
-    "vitest": "^5.0.5"
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "npm --prefix apps/web run dev",
+    "dev:api": "node scripts/dev.mjs api",
+    "dev:worker": "node scripts/dev.mjs worker",
+    "build:web": "npm --prefix apps/web run build",
+    "test:web": "npm --prefix apps/web test",
+    "check:web": "npm --prefix apps/web run typecheck && npm --prefix apps/web run lint",
+    "check:connectivity": "node scripts/connectivity.mjs"
   }
 }

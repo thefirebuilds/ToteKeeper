@@ -14,16 +14,60 @@ elif len(SECRET_KEY) < 50 or not ALLOWED_HOSTS or not CSRF_TRUSTED_ORIGINS or no
     raise ImproperlyConfigured('Production requires a 50+ character SECRET_KEY, ALLOWED_HOSTS, CSRF_TRUSTED_ORIGINS and POSTGRES_PASSWORD.')
 
 INSTALLED_APPS = ['django.contrib.admin', 'django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions', 'django.contrib.messages', 'django.contrib.staticfiles', 'axes', 'storage']
+INSTALLED_APPS += ['django.contrib.humanize', 'allauth', 'allauth.account', 'allauth.mfa', 'allauth.usersessions', 'portal.apps.PortalConfig']
 MIDDLEWARE = ['django.middleware.security.SecurityMiddleware', 'whitenoise.middleware.WhiteNoiseMiddleware', 'django.contrib.sessions.middleware.SessionMiddleware', 'django.middleware.common.CommonMiddleware', 'django.middleware.csrf.CsrfViewMiddleware', 'django.contrib.auth.middleware.AuthenticationMiddleware', 'django.contrib.messages.middleware.MessageMiddleware', 'django.middleware.clickjacking.XFrameOptionsMiddleware', 'axes.middleware.AxesMiddleware']
+MIDDLEWARE += ['allauth.account.middleware.AccountMiddleware', 'allauth.usersessions.middleware.UserSessionsMiddleware', 'portal.middleware.AccessAuditMiddleware']
 ROOT_URLCONF = 'config.urls'
 TEMPLATES = [{'BACKEND': 'django.template.backends.django.DjangoTemplates', 'DIRS': [BASE_DIR / 'templates'], 'APP_DIRS': True, 'OPTIONS': {'context_processors': ['django.template.context_processors.request', 'django.contrib.auth.context_processors.auth', 'django.contrib.messages.context_processors.messages']}}]
+TEMPLATES[0]['OPTIONS']['context_processors'].append('portal.context.portal_context')
 WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {'default': {'ENGINE': 'django.db.backends.postgresql', 'NAME': os.getenv('POSTGRES_DB', 'octagon'), 'USER': os.getenv('POSTGRES_USER', 'octagon'), 'PASSWORD': os.getenv('POSTGRES_PASSWORD', ''), 'HOST': os.getenv('POSTGRES_HOST', 'db'), 'PORT': os.getenv('POSTGRES_PORT', '5432')}}
 if DEBUG and os.getenv('USE_SQLITE', 'false').lower() == 'true':
     DATABASES = {'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': BASE_DIR / 'db.sqlite3'}}
 AUTH_PASSWORD_VALIDATORS = [{'NAME': 'django.contrib.auth.password_validation.' + name} for name in ['UserAttributeSimilarityValidator', 'MinimumLengthValidator', 'CommonPasswordValidator', 'NumericPasswordValidator']]
 AUTHENTICATION_BACKENDS = ['axes.backends.AxesStandaloneBackend', 'django.contrib.auth.backends.ModelBackend']
+AUTHENTICATION_BACKENDS += ['allauth.account.auth_backends.AuthenticationBackend']
+ACCOUNT_LOGIN_METHODS = {'username', 'email'}
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_ADAPTER = 'portal.auth.AccountAdapter'
+ACCOUNT_SESSION_REMEMBER = False
+ACCOUNT_REAUTHENTICATION_TIMEOUT = 300
+ACCOUNT_EMAIL_SUBJECT_PREFIX = '[ToteKeeper] '
+CACHES = {'default': {'BACKEND': 'django.core.cache.backends.db.DatabaseCache', 'LOCATION': 'octagon_rate_cache', 'OPTIONS': {'MAX_ENTRIES': 100000}}}
+MFA_ADAPTER = 'portal.auth.MFAAdapter'
+MFA_SUPPORTED_TYPES = ['totp', 'recovery_codes', 'webauthn']
+MFA_PASSKEY_LOGIN_ENABLED = True
+MFA_RECOVERY_CODES_SHOW_ONCE = True
+MFA_TOTP_ISSUER = 'ToteKeeper / Octagon'
+USERSESSIONS_TRACK_ACTIVITY = True
+SESSION_COOKIE_AGE = 43200
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+MFA_ENCRYPTION_KEY = os.getenv('MFA_ENCRYPTION_KEY') or ('MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=' if DEBUG else '')
+if not MFA_ENCRYPTION_KEY:
+    raise ImproperlyConfigured('Production requires a separate MFA_ENCRYPTION_KEY (Fernet key).')
+try:
+    from cryptography.fernet import Fernet
+    Fernet(MFA_ENCRYPTION_KEY.encode())
+except (ValueError, TypeError):
+    raise ImproperlyConfigured('MFA_ENCRYPTION_KEY must be a valid Fernet key.') from None
+PUBLIC_BASE_URL = os.getenv('PUBLIC_BASE_URL', 'http://localhost:8000' if DEBUG else '').rstrip('/')
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
+STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
+STRIPE_PORTAL_CONFIGURATION = os.getenv('STRIPE_PORTAL_CONFIGURATION', '')
+STRIPE_API_VERSION = '2026-02-25.clover'
+BUSINESS_PHONE = os.getenv('BUSINESS_PHONE', '')
+BUSINESS_EMAIL = os.getenv('BUSINESS_EMAIL', '')
+BUSINESS_HOURS = os.getenv('BUSINESS_HOURS', '')
+if not DEBUG and (not PUBLIC_BASE_URL.startswith('https://') or not STRIPE_SECRET_KEY or not STRIPE_WEBHOOK_SECRET):
+    raise ImproperlyConfigured('Production requires PUBLIC_BASE_URL (HTTPS) and Stripe secret/webhook keys.')
+DATA_UPLOAD_MAX_MEMORY_SIZE = 6 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024
+PHOTO_MAX_BYTES = 5 * 1024 * 1024
+PHOTO_LIMIT = 8
 AXES_FAILURE_LIMIT = 5
+AXES_USERNAME_CALLABLE = 'portal.auth.axes_username'
 AXES_COOLOFF_TIME = timedelta(minutes=30)
 AXES_LOCKOUT_PARAMETERS = ['username']
 # Account-based lockout works across proxy addresses and client IP rotation.
@@ -34,7 +78,7 @@ AXES_ENABLE_ACCESS_FAILURE_LOG = False
 AXES_DISABLE_ACCESS_LOG = True
 AXES_SENSITIVE_PARAMETERS = ['username', 'ip_address', 'user_agent', 'path_info', 'http_accept']
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'America/Chicago'
+TIME_ZONE = os.getenv('SERVICE_TIMEZONE', 'America/Chicago')
 USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
@@ -68,4 +112,4 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 # Do not emit request URLs, form contents, email addresses or authentication attempts.
-LOGGING = {'version': 1, 'disable_existing_loggers': False, 'handlers': {'null': {'class': 'logging.NullHandler'}}, 'loggers': {name: {'handlers': ['null'], 'propagate': False} for name in ['django.request', 'django.server', 'django.security', 'axes']}}
+LOGGING = {'version': 1, 'disable_existing_loggers': False, 'handlers': {'null': {'class': 'logging.NullHandler'}}, 'loggers': {name: {'handlers': ['null'], 'propagate': False} for name in ['django.request', 'django.server', 'django.security', 'axes', 'stripe']}}

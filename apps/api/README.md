@@ -1,28 +1,21 @@
-# Octagon · seasonal storage portal
+# ToteKeeper customer portal · Octagon backend
 
-Django 5.2 LTS, PostgreSQL 17, server-rendered templates, Gunicorn, WhiteNoise and Caddy. **Your Storage Business** is placeholder branding. Nothing has been provisioned or deployed.
+Django 5.2/PostgreSQL application extending the existing scaffold. **ToteKeeper** is the customer brand; **Octagon** is the restricted staff console. No deployment or infrastructure provisioning has occurred.
 
-## Run locally with Docker
+## Run locally
 
-Install Docker with Compose v2. Copy `.env.example` to `.env` and set a unique `POSTGRES_PASSWORD`. Leave `DEBUG=true` for local work only.
+Install Docker Engine/Desktop and Compose v2. Copy `.env.example` to `.env`, set a unique `POSTGRES_PASSWORD`, and leave `DEBUG=true` for local development. No payment/provider keys are needed to browse empty states or use the explicitly fictional fixtures.
 
 ```sh
 docker compose build
 docker compose run --rm app python manage.py migrate
 docker compose run --rm app python manage.py createsuperuser
-docker compose run --rm app python manage.py seed_demo
 docker compose up -d --wait
 ```
 
-Open http://localhost:8000. Customer overview: `/`; operator dashboard: `/operations/`; management: `/admin/`; database-backed health: `/health/`.
+Open http://localhost:8000. Register at `/accounts/signup/` and verify email using the link printed by the local console email backend. Customer accounts never receive staff access through registration. Staff created with `createsuperuser` must also verify their email and enroll/complete a real MFA challenge before accessing `/octagon/` or `/admin/`.
 
-`seed_demo` creates two fictional customers and four totes with unusable passwords. Enable a demo login with `docker compose exec app python manage.py changepassword demo1`. Seeding is idempotent and refused in production. Migrations seed draft plans of 1 tote/$149, 4 totes/$299 and 10 totes/$599 annually.
-
-Rebuild source changes with `docker compose up -d --build`. For autoreload, stop the app service and run `docker compose run --rm --service-ports app python manage.py runserver 0.0.0.0:8000`. Local reset emails appear in `docker compose logs app`; use fictional data because console emails contain reset tokens.
-
-## Native Python fallback
-
-Python 3.13 is recommended. PowerShell:
+For native PowerShell development (Python 3.13):
 
 ```powershell
 python -m venv .venv
@@ -30,44 +23,66 @@ python -m venv .venv
 $env:DEBUG='true'
 $env:USE_SQLITE='true'
 ./.venv/Scripts/python.exe manage.py migrate
-./.venv/Scripts/python.exe manage.py createsuperuser
-./.venv/Scripts/python.exe manage.py seed_demo
 ./.venv/Scripts/python.exe manage.py runserver
 ```
 
-Native commands read process environment, not `.env`; Compose loads `.env`. SQLite is a local-only fallback. To use native PostgreSQL, omit `USE_SQLITE=true` and configure `POSTGRES_*` environment variables.
+Native Django reads process environment, not `.env`; Compose loads `.env`. SQLite is a local fallback and cannot validate PostgreSQL locking. In a second terminal with the same environment, run `python manage.py run_jobs` for expiry, notifications and reconciliation. Compose includes that worker automatically. Rebuild Compose after code changes; static assets are collected into the image.
 
-## Operator workflow
-
-1. Create a Django user under Authentication → Users with a unique username and strong password. Customers must be active, without staff/superuser flags. Share initial credentials using your chosen secure channel; invitations are deferred.
-2. Create a Customer linked to the user, with email and service address. Customer admin/profile edits synchronize the email used for password resets. Do not edit email independently on the User screen.
-3. Review draft plans and create a subscription with explicit agreed annual price and dates. Plan price changes never change the agreed price. Track payments manually; never enter card data.
-4. Create and assign totes to active customers. Generated `T-…` IDs are unique label-ready text; custom uppercase IDs can be entered at creation. No QR image generator is included.
-5. Confirm requests from the operator dashboard, entering the actual appointment in America/Chicago time. Preferred date/window stay separate. Bulk-mark confirmed totes in transit in tote admin, then complete the request to update all its totes. Resolve in-transit totes before canceling.
-6. Use tote admin for locations, seals, assignment and retirement. Private timestamped history records movements, locations and assignments. Bulk moves are atomic; one invalid tote rejects the whole operation. Totes outside requests move through transit; retired totes are reactivated individually.
-
-`is_staff` is the trusted operator role and grants dashboard, request workflow and exports. Use the first superuser for full Django admin management. Limited Django staff permissions do not restrict operations access. Customers are scoped by linked Customer ID on every view and mutation; suspended profiles cannot use the portal. Django `is_active=false` also disables login.
-
-Customer pages expose no private notes, warehouse locations or operational history. Customers can edit their profile and tote nickname/description, submit requests and cancel unconfirmed requests. There is no public signup or JSON business API. Future APIs must use the same ownership checks and `storage/services.py`.
-
-## Verification
+## Explicit development fixtures
 
 ```sh
-docker compose run --rm app python manage.py check
-docker compose run --rm app python manage.py makemigrations --check --dry-run
-docker compose run --rm app python manage.py test
+docker compose run --rm app python manage.py seed_portal_demo
+docker compose run --rm app python manage.py changepassword portal_demo
 ```
 
-Tests cover isolation including crafted POSTs, staff access, CSRF, request eligibility/conflicts/transitions, bulk rollback, assignment, duplicate IDs, price preservation, address snapshots, history, reset emails, login lockout, CSV formula escaping and health. GitHub Actions runs fresh migrations and tests on PostgreSQL, then builds and starts Compose. It never deploys. `requirements.lock` pins tested dependencies; refresh deliberately and rerun tests.
+This creates a clearly named fictional account, a draft **DEVELOPMENT FIXTURE** offering, test-only credits and fictional service windows in postal code `00000`. It does not create a default password, verify an email, bypass MFA, create a real Stripe object or enable a real offering. Verify the fixture email through the normal allauth flow, using console email locally. The fixture paid status is for offline UI/workflow testing only; it is labeled as development. Never seed production. Live Stripe keys are blocked with `DEBUG=true`.
 
-## Production and limitations
+The older `seed_demo` and original draft annual plans are preserved for legacy records, but are not the new offering catalog or real ToteKeeper prices. Migrations backfill an Account for each existing Customer without activating subscriptions. Old manual subscriptions and requests remain read-only in admin; review them before a commercial migration. Do not replace an existing database to try this version.
 
-Read [deployment, backups and rollback](docs/deployment.md). Configure hosting, domain/DNS, SMTP, secrets and branding before deployment. Production rejects missing secrets, wildcard hosts, non-HTTPS trusted origins, missing SMTP configuration and SQLite-only setup. No production credentials exist.
+## Working flows
 
-- No payments, SMS, routing, photos, contracts, invitations, public marketing, automated renewals or carrier integrations.
-- Allowances are displayed for operator review; overages are not automatically blocked or billed. One current subscription per customer is supported.
-- Requested service reserves totes without changing physical status; confirmation marks scheduling. PostgreSQL locks serialize conflicting writes. SQLite cannot verify production concurrency.
-- Activities are private application records, not tamper-proof compliance logs. Direct SQL/ORM scripts bypass workflow safeguards; use services for operational writes. Locations and seals are maintained manually.
-- Login locks a username for 30 minutes after 5 failures using database-backed Django Axes. Account-only limiting works across IP rotation and avoids grouping all customers under Caddy's internal IP. `axes.W006` is intentionally silenced for this reason. Unlock after review with `python manage.py axes_reset_username USERNAME`. Account lockout can itself be abused; edge abuse protection and password-reset email throttling remain future work.
-- Timestamps are timezone-aware and stored in UTC; appointments display in America/Chicago. Ambiguous/nonexistent local DST times are rejected by Django forms.
-- Docker and browser automation were unavailable on the implementation machine. CI checks are configured but must run after pushing. See the handoff for validation actually executed.
+- Verified registration, sign-in/out, recovery, email changes, active-session management, optional TOTP MFA/recovery codes and WebAuthn/passkeys through django-allauth. Staff require verified email and an MFA-authenticated session; there is no development staff bypass.
+- Profile, primary/additional addresses, notification preferences and separate marketing consent; service-area checks before enrollment.
+- Versioned offerings, accepted policy snapshots, enrollment progress and server-owned Stripe references. Hosted Checkout and Customer Portal support subscriptions, one-time delivery purchases, payment methods and invoice links. Signed events and authoritative provider reads control entitlements; redirects never activate them.
+- Available-window requests for pickup, return and exchange, with lead time, capacity, blackout flags and cancellation cutoffs. Credits and capacity are reserved transactionally; fulfillment has explicit status transitions. Requested windows need staff confirmation.
+- Customer-owned inventory, descriptive edits, oversized-item approval, registered-versus-received statuses and private photos. Photos are content-validated, size/count limited, re-encoded as JPEG without unnecessary metadata, stored privately in PostgreSQL and served only through authorized views. No public media directory exists.
+- Help/callback tickets, direct configurable contact details, assigned-steward fulfillment and inventory operations, administrator management and CSV exports.
+- Append-only audit/ledger records through normal application paths, redacted changes, account/actor/correlation IDs, provider event IDs, atomic audits and a persistent notification outbox.
+
+## Staff provisioning and adjustments
+
+Create a separate user in Django admin, then provision it explicitly from the trusted server shell:
+
+```sh
+python manage.py provision_staff USERNAME --role steward --reason 'Approved staff provisioning reference'
+python manage.py provision_staff USERNAME --role administrator --reason 'Approved administrator provisioning reference'
+```
+
+`--role revoke` removes staff privileges. Staff must verify email and complete MFA. Stewards see only assigned deliveries and relevant inventory/contact details; they cannot access Django admin, billing, exports, credits or offering management. Administrators manage configuration in Django admin. Superusers are administrators by definition. Do not share staff accounts.
+
+Credit adjustments are explicit, audited and separate from provider refunds:
+
+```sh
+python manage.py adjust_credits ACCOUNT_ID QUANTITY --actor ADMIN_USERNAME --valid-days DAYS --reason 'Approved support case reference'
+```
+
+Negative adjustments cannot spend reserved credits or make a balance negative. No card data or payment credentials are stored. Cash refunds are performed in Stripe under the approved policy; refund events reconcile unused purchased credits and open a staff review ticket for consumed/partial cases.
+
+Suspended customers retain access to Billing, cancellation and Help. Suspension does not authorize continued unwanted renewal or disposal of stored property. This MVP supports one current provider contract per account; re-enrollment after a completed cancellation and independent additional packages require a reviewed staff migration, rather than creating a second subscription silently.
+
+## Provider and production setup
+
+See [provider setup and commercial decisions](docs/providers-and-policies.md), [deployment/backups](docs/deployment.md), [security/retention](docs/security.md), and [verification](docs/verification.md).
+
+Required before launch: PostgreSQL, stable HTTPS `PUBLIC_BASE_URL`, `SECRET_KEY`, separate persistent `MFA_ENCRYPTION_KEY`, allowed hosts/trusted origins, SMTP, Stripe keys/webhook/portal configuration, real contact details, approved service areas/windows, offerings/provider prices, tax review, and real versioned terms/cancellation policy. `.env.example` lists configuration names. Production fails closed when required core secrets/provider settings are missing. Run `python manage.py check_launch` for additional commercial/configuration checks.
+
+## Tests
+
+```sh
+python manage.py check
+python manage.py makemigrations --check --dry-run
+python manage.py test
+python manage.py collectstatic --noinput
+```
+
+GitHub Actions runs fresh migrations/tests against PostgreSQL, including simultaneous reservation checks, then builds/starts Compose. It never deploys. `requirements.lock` pins resolved dependencies. Actual provider calls, real browser passkeys, PostgreSQL concurrency, SMTP and Docker startup require acceptance testing in a configured environment before production.
