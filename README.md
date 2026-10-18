@@ -2,9 +2,13 @@
 
 React/TypeScript/Vite storefront and **fictional** Octagon customer-experience preview. Octagon is a standalone backend under development. This repository has no production authentication, database, uploads, payment processing, messaging delivery, or appointment confirmation endpoint. It is not ready to accept real online enrollments.
 
+A separate, opt-in **local Stripe sandbox integration** now preserves the existing enrollment/cart and uses hosted Checkout, recurring Billing, a restricted customer portal, signed webhooks and durable SQLite test records. It rejects live keys and does not deploy with the static storefront. Setup, object mapping, tests and production blockers: [Stripe sandbox guide](docs/STRIPE.md).
+
 ## Development
 
 Use Node.js 20.19+ or 22.12+ and npm. Run `npm install`, then `npm run dev`. Checks: `npm run typecheck`, `npm test`, `npm run lint`, `npm run build`. Production preview: `npm run preview`. Build output: `dist/`.
+
+The optional sandbox server requires **Node 22.13+ or Node 24** for built-in SQLite. `npm run sandbox:server` starts it on loopback; `npm run stripe:catalog` explicitly syncs versioned test Prices, and `npm run stripe:portal` configures restricted hosted billing. All require local environment setup; none runs automatically during build/deploy.
 
 ## Implemented
 

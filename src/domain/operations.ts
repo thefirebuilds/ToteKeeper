@@ -1,4 +1,4 @@
-import { creditsForToteMix, POLICY, SERVICE_CONFIG } from '../config/business'
+import { creditsForToteMix, POLICY, SERVICE_CONFIG } from '../config/commercial'
 import type { ToteSizeId } from '../types'
 
 export type PlanId = 'small' | 'medium' | 'big'
@@ -6,7 +6,7 @@ export type Billing = 'annual' | 'monthly'
 export type CancellationStage = 'Active' | 'Cancellation requested' | 'Return scheduled' | 'Belongings returned' | 'Totes reconciled'
 export type LegKind = 'Initial empty delivery' | 'Packed collection' | 'Packed return' | 'Empty collection' | 'Empty redelivery' | 'Final return'
 export interface TripLeg { id: string; kind: LegKind; status: 'Available' | 'Requested' | 'Confirmed' | 'Completed'; requestId?: string; completedAt?: string }
-export interface ServiceCycle { id: string; kind: 'Included' | 'Extra' | 'Cancellation'; price: number; payment: 'Included' | 'Demo recorded' | 'Unpaid'; legs: TripLeg[] }
+export interface ServiceCycle { id: string; kind: 'Included' | 'Extra' | 'Cancellation'; price: number; payment: 'Included' | 'Demo recorded' | 'Unpaid' | 'Verified paid'; legs: TripLeg[] }
 export interface PackageRecord {
   id: string; customerId: string; planId: PlanId; billing: Billing; credits: number
   serviceYear: { startedAt: string; resetAt: string | null; resetReviewRequired: boolean }

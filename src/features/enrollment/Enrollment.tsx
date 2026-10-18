@@ -6,6 +6,7 @@ import { POLICY_FAQS } from '../../config/policyCopy'
 import { quoteOrder } from '../../domain/operations'
 import type { BulkySelection, PackageSelection, PlanId } from '../../domain/operations'
 import { toteKeeperService } from '../../services/demoService'
+import { SandboxCart } from '../billing/SandboxBilling'
 
 export function Enrollment() {
   const [params] = useSearchParams()
@@ -45,6 +46,7 @@ export function Enrollment() {
       <label className="policy-ack"><input type="checkbox" checked={accepted} onChange={event => { changed(); setAccepted(event.target.checked) }} /><span>I have reviewed this versioned demo policy preview and understand that this is not real enrollment or legal agreement acceptance.</span></label>
       <label className="policy-ack"><input type="checkbox" checked={serviceSms} onChange={event => { changed(); setServiceSms(event.target.checked) }} /><span>Demo service SMS consent (optional; nothing is sent).</span></label><label className="policy-ack"><input type="checkbox" checked={marketingSms} onChange={event => { changed(); setMarketingSms(event.target.checked) }} /><span>Separate demo marketing SMS consent (optional; nothing is sent).</span></label>
       <button className="button button-primary" disabled type="button">Hosted checkout unavailable</button><button className="button button-outline" type="button" disabled={!DEMO_PORTAL_ENABLED || !quote || !accepted || !address.trim() || packages.some(pkg => pkg.billing === 'monthly') || busy || saved} onClick={() => void previewEnrollment()}>{saved ? 'Added to fictional demo' : 'Try this order in the fictional demo'}</button>{notice && <p className="portal-notice" role="status">{notice}</p>}<Link className="text-link" to="/portal/plan">Open demo packages →</Link><p>For real service questions: <a href={`mailto:${OWNER.email}`}>{OWNER.email}</a> · <a href={OWNER.phoneHref}>{OWNER.phone}</a></p>
+      <SandboxCart packages={packages} bulky={bulky} address={address} />
     </aside></div>
   </main></>
 }
