@@ -4,7 +4,7 @@ permissions:
   contents: read
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: apps/web
@@ -21,7 +21,7 @@ jobs:
       - run: npm test
       - run: npm run build
   connectivity:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       DEBUG: 'true'
       USE_SQLITE: 'true'
@@ -30,7 +30,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
       - run: npm --prefix apps/web ci
