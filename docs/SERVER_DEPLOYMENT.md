@@ -44,7 +44,7 @@ Caddy sends storefront `/api` and `/stripe/webhook` requests to Django before th
 
 ## GitHub setup and first run
 
-1. Commit and push the reviewed monorepo and workflow to **main**. This task does not push them. Manual deployment is intentionally restricted to main.
+1. Push reviewed changes or merge a pull request into **main** to start an automatic deployment. Other branches and pull requests do not publish to the server. Manual deployment is also restricted to main.
 2. Create a GitHub Environment named **production**. Configure main as its allowed deployment branch and any desired reviewer protection.
 3. Add these **environment secrets**:
 
@@ -56,7 +56,7 @@ Caddy sends storefront `/api` and `/stripe/webhook` requests to Django before th
 
 Optional environment variable `DEPLOY_PORT` overrides port 22. For a nonstandard port, the known_hosts name must be `[162.243.163.103]:PORT`. Obtain the server host-key fingerprint through the DigitalOcean console or another trusted channel, then verify the known_hosts entry before storing it. Do not trust an unverified `ssh-keyscan` result. The workflow enforces strict host-key verification.
 
-4. In GitHub Actions choose **Deploy dedicated server ? Run workflow ? main**. There is no automatic push deployment yet. Deployment script tests and Compose/Caddy validation run alongside both existing CI suites, including PostgreSQL tests, Docker smoke tests and frontend/API proxy checks. After they pass, the production environment gate applies.
+4. Every push to main automatically starts **Deploy dedicated server**. You can also choose **Run workflow > main** manually. Deployment script tests and Compose/Caddy validation run alongside both existing CI suites, including PostgreSQL tests, Docker smoke tests and frontend/API proxy checks. After they pass, the production environment gate applies.
 5. The job builds and uploads a SHA-addressed release, verifies its archive checksum, validates/builds server containers and checks Django settings/migration plans. It then stops the old proxy, app and worker, makes and validates a PostgreSQL dump, runs migrations, starts all components, and checks public HTTPS API health, storefront response and API 404 routing. There is a short maintenance window. A server-side lock prevents overlapping deploy scripts.
 
 The database and TLS volumes always use Compose project `totekeeper`, regardless of release path. Successful releases update `/opt/totekeeper/current` and `current-sha`. Retrying the same SHA reuses its immutable extracted release; an incomplete extraction is rejected for operator inspection.

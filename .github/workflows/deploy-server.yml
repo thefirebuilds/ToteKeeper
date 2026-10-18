@@ -1,6 +1,8 @@
 name: Deploy dedicated server
 run-name: Deploy ${{ github.sha }} to 162.243.163.103
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
