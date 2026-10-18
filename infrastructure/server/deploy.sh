@@ -29,9 +29,11 @@ test -s "$backup"
 "${compose[@]}" run --rm --no-deps app python manage.py migrate --noinput
 # Recreate proxy as well: it mounts static assets from this immutable release path.
 "${compose[@]}" up -d --wait --force-recreate app worker proxy
+# Caddy can be running before first-time ACME certificate issuance finishes.
+# Include TLS handshake errors in bounded retries; keep certificate verification enabled.
 portal_url=$("${compose[@]}" exec -T app python -c 'import os; print(os.environ["PUBLIC_BASE_URL"].rstrip("/"))')
 [[ "$portal_url" == https://* ]]
-curl --fail --silent --show-error --retry 6 --retry-delay 5 "$portal_url/api/health/" > /dev/null
+curl --fail --silent --show-error --connect-timeout 5 --max-time 15 --retry 12 --retry-delay 5 --retry-max-time 120 --retry-all-errors "$portal_url/api/health/" > /dev/null
 web_domain=$("${compose[@]}" exec -T proxy printenv WEB_DOMAIN)
 curl --fail --silent --show-error --retry 6 --retry-delay 5 "https://$web_domain/" > /dev/null
 api_missing_status=$(curl --silent --show-error -o /dev/null -w '%{http_code}' "https://$web_domain/api/not-a-real-endpoint/")
