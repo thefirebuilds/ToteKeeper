@@ -86,3 +86,10 @@ All appointment display formatting uses the `America/Chicago` time zone. The dem
 ## Tests
 
 Focused Vitest coverage checks tote eligibility, conflicting active requests, and request creation. Tests use fictional in-memory browser storage.
+## Selected Farmplast totes: implementation notes
+
+Shared specifications and authoritative blue product images are in `src/config/business.ts`. Existing `large_tote.jpeg` and `XL_tote.jpeg` are the supplied Large and XL product photos (supplier filenames: `Heavy-Duty-Attached-Lid-Pastic-Tote-Blue-3-1200x1200.jpeg` and `Heavy-Duty-XL-Attached-Lid-Tote-Blue-5-1200x1200.jpeg`). Dimensions are approximate; the provided gallon and cubic-foot figures are manufacturer-listed values, not a guarantee of usable capacity.
+
+Unresolved before launch: verify manufacturer load and stacking ratings, which conflict in the supplied text (500 lb and 100 lb claims). Confirm the service packed-weight limit for each size independently. Do not derive safe stacks or customer weight limits from these claims. Cross-size stacking or interlocking has not been verified. These are internal implementation decisions, not customer packing limits.
+
+Saved v1/v2 demo records using `oversized` migrate to `xl`, preserving IDs, contents descriptions, seals, and movement history. The v2 storage key remains in use; reset clears both versions. Bulky items remain separately quoted outside tote credits.

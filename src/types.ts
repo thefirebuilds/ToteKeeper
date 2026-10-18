@@ -1,5 +1,5 @@
 export type ToteStatus = 'At home' | 'In storage'
-export type ToteSizeId = 'large' | 'oversized'
+export type ToteSizeId = 'large' | 'xl'
 export type RequestKind = 'Collection' | 'Return delivery'
 export type RequestStatus = 'Awaiting confirmation' | 'Confirmed' | 'Cancelled'
 

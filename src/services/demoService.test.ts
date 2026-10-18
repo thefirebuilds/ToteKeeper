@@ -81,10 +81,10 @@ describe('demo request rules', () => {
 
   it('blocks a demo tote allocation that exceeds available plan credits', async () => {
     const service = createMockToteKeeperService()
-    for (let index = 0; index < 3; index += 1) await service.addDemoTote({ size: 'oversized', nickname: `Packed tree bag ${index + 1}`, category: 'Holiday décor', description: 'One disassembled tree bag', status: 'At home', combinedContentsValue: 80, contentsAcknowledged: true })
+    for (let index = 0; index < 3; index += 1) await service.addDemoTote({ size: 'xl', nickname: `Packed XL tote ${index + 1}`, category: 'Holiday décor', description: 'Clean seasonal bedding', status: 'At home', combinedContentsValue: 80, contentsAcknowledged: true })
     const data = await service.getDemoData()
     expect(data.totes.reduce((sum, tote) => sum + SERVICE_CONFIG.toteSizes[tote.size].credits, 0)).toBe(10)
-    await expect(service.addDemoTote({ size: 'oversized', nickname: 'Extra oversized tote', category: 'Seasonal', description: 'Demo item', status: 'At home', combinedContentsValue: 50, contentsAcknowledged: true })).rejects.toThrow('would use 12 of 10 plan credits')
+    await expect(service.addDemoTote({ size: 'xl', nickname: 'Extra XL tote', category: 'Seasonal', description: 'Demo item', status: 'At home', combinedContentsValue: 50, contentsAcknowledged: true })).rejects.toThrow('would use 12 of 10 plan credits')
   })
 
   it('keeps concern reports fictional and unpersisted', async () => {
@@ -93,5 +93,24 @@ describe('demo request rules', () => {
     await service.reportConcern({ toteId: 'MTK-1042', category: 'Seal discrepancy', description: 'The sample seal looks different.' })
     expect(await service.getDemoData()).toEqual(before)
     await expect(service.reportConcern({ toteId: 'MTK-9999', category: 'Other', description: 'Not found' })).rejects.toThrow('could not be found')
+  })
+
+  it('persists the XL migration without losing records and resets both storage versions', async () => {
+    const service = createMockToteKeeperService()
+    const original = await service.getDemoData()
+    const legacy = structuredClone(original) as unknown as { totes: Array<Record<string, unknown>> }
+    legacy.totes[2].size = 'oversized'
+    const encoded = JSON.stringify(legacy)
+    memory.set('my-tote-keeper-demo-v2', encoded)
+    memory.set('my-tote-keeper-demo-v1', encoded)
+    const migrated = await service.getDemoData()
+    expect(migrated).toMatchObject(original)
+    expect(migrated.totes[2].size).toBe('xl')
+    expect(JSON.parse(memory.get('my-tote-keeper-demo-v2')!).totes[2]).toMatchObject(original.totes[2])
+    await service.saveTote(migrated.totes[2].id, { nickname: 'Updated XL', description: 'Clean linens' })
+    expect((await createMockToteKeeperService().getDemoData()).totes[2].nickname).toBe('Updated XL')
+    expect(await service.resetDemo()).toEqual(original)
+    expect(memory.size).toBe(0)
+    expect(await service.getDemoData()).toEqual(original)
   })
 })

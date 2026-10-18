@@ -1,6 +1,6 @@
 name: Deploy to IONOS
 
-on:
+on: m,iom k,     
   push:
     branches:
       - main

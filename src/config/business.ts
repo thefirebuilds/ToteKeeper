@@ -1,3 +1,6 @@
+import largeToteImage from '../assets/images/large_tote.jpeg'
+import xlToteImage from '../assets/images/XL_tote.jpeg'
+
 export const BRAND = {
   name: 'My Tote Keeper',
   tagline: 'We’ll hang onto that for you.',
@@ -35,28 +38,50 @@ export const SERVICE_CONFIG = {
     ownership: 'Totes remain the property of My Tote Keeper and must be returned when storage ends.',
     depositHandling: 'Deposit return conditions are confirmed before signup.',
   },
+  toteFeatures: 'Made in the USA from commercial-grade polyethylene, with attached interlocking flip-top lids, molded carrying handles, and security-tie attachment points. Same-size totes stack when closed and nest when empty.',
+  toteCapacityComparison: 'One XL tote uses two credits and offers approximately twice the capacity of a Large tote.',
   toteSizes: {
     large: {
       id: 'large',
       name: 'Large tote',
-      outsideDimensionsInches: { length: 21.5, width: 15.25, height: 12.5 },
+      image: largeToteImage,
+      imageAlt: 'Blue Farmplast Large ATL21159 tote with attached flip-top lids open',
+      outsideDimensionsInches: { length: 21.875, width: 15.25, height: 9.6875 },
+      exteriorDimensionsLabel: '21-7/8 in L x 15-1/4 in W x 9-11/16 in H',
+      interiorDimensionsLabel: '19-3/4 in L x 14-1/4 in W x 9 in H',
+      bottomExteriorDimensionsLabel: '19-1/4 in L x 13-1/8 in W x 9-11/16 in H',
+      bottomInteriorDimensionsLabel: '18-3/4 in L x 12-1/2 in W x 9 in H',
+      capacityGallons: 9,
+      volumeCubicFeet: 1.3,
+      partNumber: 'ATL21159',
+      description: 'A tidy little home for the things you don’t need every day. Our commercial-grade Large tote has attached flip-top lids, easy-grip handles, and space for decorations, seasonal accessories, or smaller household essentials.',
       credits: 1,
-      referenceFormat: 'Akro-Mils 39120 or equivalent commercial attached-lid tote',
+      referenceFormat: 'Farmplast ATL21159',
       lid: 'Attached, interlocking flip-top lid',
     },
-    oversized: {
-      id: 'oversized',
-      name: 'Oversized tote',
-      outsideDimensionsInches: { length: 28, width: 21, height: 15.5 },
+    xl: {
+      id: 'xl',
+      name: 'XL tote',
+      image: xlToteImage,
+      imageAlt: 'Blue Farmplast XL XLT271712 tote with attached interlocking lids closed',
+      outsideDimensionsInches: { length: 27, width: 17, height: 12 },
+      exteriorDimensionsLabel: '27 in L x 17 in W x 12 in H',
+      interiorDimensionsLabel: '25.5 in L x 15.5 in W x 11.8 in H',
+      bottomExteriorDimensionsLabel: null,
+      bottomInteriorDimensionsLabel: null,
+      capacityGallons: 18.75,
+      volumeCubicFeet: 2.5,
+      partNumber: 'XLT271712',
+      description: 'More room for your collection of occasionally useful things. Our XL tote offers approximately twice the capacity of a Large, with the same attached-lid convenience and commercial-grade construction.',
       credits: 2,
-      referenceFormat: 'Akro-Mils 39280 or equivalent commercial attached-lid tote',
+      referenceFormat: 'Farmplast XLT271712',
       lid: 'Attached, interlocking flip-top lid',
     },
   },
   plans: [
-    { id: 'small', name: 'Small', credits: 2, annualPrice: 149, monthlyPrice: 15, note: 'One less thing underfoot.', examples: '2 large totes OR 1 oversized tote', featured: false },
-    { id: 'medium', name: 'Medium', credits: 4, annualPrice: 299, monthlyPrice: 50, note: 'Give a closet its job back.', examples: '4 large OR 2 large + 1 oversized OR 2 oversized', featured: true },
-    { id: 'big', name: 'Big', credits: 10, annualPrice: 599, monthlyPrice: 100, note: 'Your garage has other ambitions.', examples: '10 large OR 6 large + 2 oversized OR 5 oversized', featured: false },
+    { id: 'small', name: 'Small', credits: 2, annualPrice: 149, monthlyPrice: 15, note: 'One less thing underfoot.', examples: '2 Large or 1 XL', featured: false },
+    { id: 'medium', name: 'Medium', credits: 4, annualPrice: 299, monthlyPrice: 50, note: 'Give a closet its job back.', examples: '4 Large, 2 Large + 1 XL, or 2 XL', featured: true },
+    { id: 'big', name: 'Big', credits: 10, annualPrice: 599, monthlyPrice: 100, note: 'Your garage has other ambitions.', examples: '10 Large, 6 Large + 2 XL, or 5 XL', featured: false },
   ],
   oversizedEstimates: [
     { label: '12-foot skeleton, disassembled and packed', estimate: 'Request a quote' },
@@ -79,8 +104,8 @@ export function smallestPlanForCredits(creditsRequired: number) {
   return SERVICE_CONFIG.plans.find((plan) => plan.credits >= creditsRequired)
 }
 
-export function creditsForToteMix(largeCount: number, oversizedCount: number) {
-  return largeCount * SERVICE_CONFIG.toteSizes.large.credits + oversizedCount * SERVICE_CONFIG.toteSizes.oversized.credits
+export function creditsForToteMix(largeCount: number, xlCount: number) {
+  return largeCount * SERVICE_CONFIG.toteSizes.large.credits + xlCount * SERVICE_CONFIG.toteSizes.xl.credits
 }
 
 export const TOTE_CONTENTS_ACKNOWLEDGMENT = `I confirm that this tote’s contents have a combined value of no more than $${SERVICE_CONFIG.maxCombinedToteContentsValue}, are clean and dry, and comply with the packing guidelines. It contains no prohibited valuables, irreplaceable items, food, perishables, firearms, ammunition, fireworks, fuel, hazardous materials, or unapproved batteries.`
