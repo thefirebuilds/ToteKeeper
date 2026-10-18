@@ -23,3 +23,19 @@
 .tote-product-image{display:block;width:100%;height:160px;object-fit:contain;align-self:start;background:white;border-radius:6px}.tote-size-card .tote-product-description{font-size:11px;line-height:1.7;margin:12px 0}.tote-product-specs{margin:14px 0 0;font-size:10px;line-height:1.6}.tote-product-specs>div{padding:7px 0;border-top:1px solid #e1ddd2}.tote-product-specs dt{color:#66728e}.tote-product-specs dd{margin:2px 0 0;color:#244681}.tote-size-card{align-items:start}@media(max-width:640px){.tote-product-image{height:110px}}
 
 .portal-product-image{width:70px;height:76px;object-fit:contain;flex-shrink:0;background:white;border-radius:6px;padding:4px}.tote-product-image{height:auto;aspect-ratio:1;object-fit:contain;padding:5px;box-sizing:border-box}.tote-size-card>div{min-width:0}.tote-product-specs dd{overflow-wrap:anywhere}.lifestyle-image-caption{font-size:10px;line-height:1.5;color:#5b667e;margin:8px 0}@media(max-width:640px){.tote-size-card{grid-template-columns:1fr}.tote-product-image{max-width:230px;margin:0 auto}.portal-product-image{width:54px;height:64px}}
+
+.tote-size-card .tote-packing-examples{font-size:11px;line-height:1.7;margin:14px 0;padding:12px;background:#e8eefb;color:#394d70;border-radius:4px}.tote-packing-examples strong{display:block;font-size:10px;color:#244681;margin-bottom:4px}
+
+/* Keep contents illustrations centered within the page and their own panels. */
+.college-section{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:56px}
+.college-copy h2{font:clamp(34px,4vw,49px)/1.1 var(--serif);color:#244681;margin:0 0 20px}
+.college-copy h2 em{color:#3e63b8;font-weight:400}
+.college-copy>p:not(.eyebrow){font-size:12px;line-height:1.8;color:#5f6a83}
+.college-art{display:grid;place-items:center;min-width:0}
+.college-art img{display:block;width:100%;max-width:480px;height:auto;object-fit:contain;object-position:center;margin-inline:auto}
+.seasonal-renders{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:32px;max-width:1190px;margin:0 auto;padding:0 28px 64px}
+.seasonal-renders figure{display:grid;justify-items:center;min-width:0;margin:0;text-align:center}
+.seasonal-renders img{display:block;width:100%;max-width:480px;aspect-ratio:1;height:auto;object-fit:contain;object-position:center;margin-inline:auto}
+.seasonal-renders figcaption{max-width:360px;margin:14px auto 0;font-size:12px;line-height:1.6;color:#5f6a83}
+.who-art .scene-illustration,.oversized-art .oversized-illustration{object-fit:contain;object-position:center}
+@media(max-width:640px){.college-section{grid-template-columns:1fr;gap:28px}.seasonal-renders{grid-template-columns:1fr;gap:34px;padding:0 21px 48px}.college-art img,.seasonal-renders img{max-width:360px}}
