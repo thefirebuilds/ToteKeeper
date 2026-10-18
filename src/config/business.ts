@@ -8,35 +8,61 @@ export const BRAND = {
 
 export const DEMO_PORTAL_ENABLED = true
 
+export const OWNER = { name: 'Blake Thompson', email: 'blake@totekeeper.com', phone: '262-880-4570', phoneHref: 'tel:+12628804570' } as const
+
+export const POLICY = {
+  geography: {
+    mode: 'operator-review',
+    boundary: 'Travis County south of the Colorado River; Hays County north of the Blanco Vista/Blanco River boundary.',
+    approvedPolygon: null,
+    zipApprovalEnabled: false,
+  },
+  monthlySetupCharge: { amount: null, refundable: null },
+  monthlyAllowanceReset: { anchor: null, continuousPaymentQualification: null, minimumPaidMonths: 12 },
+  extraCyclePrice: 50,
+  bulky: { addOnAnnualPrice: 75, standaloneAnnualPrice: 125, envelopeInches: [54, 24, 24], approvedWeightPounds: null, handlingApprovalRequired: true },
+  scheduling: {
+    noticeHours: 48,
+    windows: ['Weekday evening, 4–7 pm', 'Weekend morning, 8 am–12 pm', 'Weekend afternoon, 12–4 pm', 'Weekend evening, 4–7 pm'],
+    blackoutDates: [] as string[],
+    courtesyReschedules: 1,
+    replacementWithinDays: 3,
+    failedVisitFee: null,
+  },
+  storage: { temperatureF: [55, 80], onShelves: true, facilityPestControl: true },
+  renewal: { automatic: true, annualReminderDays: 30, failedPaymentGraceDays: null },
+  agreement: { version: 'business-preview-v1', approved: false, legalNoticeDeadlines: null, approvedNoticeTemplates: null },
+  integrations: { octagonConnected: false, paymentsConnected: false, smsConnected: false, emailConnected: false },
+} as const
+
 export const OPERATIONAL_PRACTICES = {
   ownerOperated: true,
   toteIdentification: 'planned',
   numberedTamperEvidentSeal: 'planned',
   handoffAndMovementRecords: 'planned',
-  authorizedOperatorsOnly: 'planned',
+  authorizedOperatorsOnly: 'Owner only',
   exteriorConditionPhotos: 'planned',
   toteHandlingAndWeightLimits: 'planned',
   securedTransport: 'planned',
   damageReportingProcess: 'planned',
-  offFloorStorage: 'planned',
+  offFloorStorage: 'Shelves, not floors',
   storageAreaInspections: 'planned',
-  professionalPestControl: 'unconfirmed',
-  ownerIntroduction: 'Replace with owner introduction before launch.',
-  ownerPhoto: 'Add owner photo before launch.',
-  directContact: 'Add verified business contact details before launch.',
+  professionalPestControl: 'Provided by the storage facility',
+  ownerIntroduction: 'Owner-operated by Blake Thompson. Only Blake handles and accesses stored belongings.',
+  directContact: 'blake@totekeeper.com · 262-880-4570',
 } as const
 
 export const SERVICE_CONFIG = {
-  serviceAreas: ['Buda', 'Kyle', 'San Marcos', 'Austin'],
+  serviceAreas: ['Buda', 'Kyle', 'South Austin'],
   state: 'Texas',
   currency: 'USD',
   annualVisitsIncluded: { collection: 1, returnDelivery: 1 },
   maxCombinedToteContentsValue: 200,
   toteTerms: {
-    monthlyDepositPerTote: 25,
+    monthlySetupCharge: null,
     annualPrepay: 'Totes are provided for use at no added charge with annual prepayment.',
     ownership: 'Totes remain the property of My Tote Keeper and must be returned when storage ends.',
-    depositHandling: 'Deposit return conditions are confirmed before signup.',
+    depositHandling: 'The monthly tote/setup charge and its refundability must be finalized before monthly enrollment.',
   },
   toteFeatures: 'Made in the USA from commercial-grade polyethylene, with attached interlocking flip-top lids, molded carrying handles, and security-tie attachment points. Same-size totes stack when closed and nest when empty.',
   toteCapacityComparison: 'One XL tote uses two credits and offers approximately twice the capacity of a Large tote.',
@@ -81,7 +107,7 @@ export const SERVICE_CONFIG = {
     },
   },
   plans: [
-    { id: 'small', name: 'Small', credits: 2, annualPrice: 149, monthlyPrice: 15, note: 'One less thing underfoot.', examples: '2 Large or 1 XL', featured: false },
+    { id: 'small', name: 'Small', credits: 2, annualPrice: 125, monthlyPrice: 15, note: 'One less thing underfoot.', examples: '2 Large or 1 XL', featured: false },
     { id: 'medium', name: 'Medium', credits: 4, annualPrice: 299, monthlyPrice: 50, note: 'Give a closet its job back.', examples: '4 Large, 2 Large + 1 XL, or 2 XL', featured: true },
     { id: 'big', name: 'Big', credits: 10, annualPrice: 599, monthlyPrice: 100, note: 'Your garage has other ambitions.', examples: '10 Large, 6 Large + 2 XL, or 5 XL', featured: false },
   ],
@@ -95,8 +121,8 @@ export const SERVICE_CONFIG = {
     maxLengthInches: 54,
     maxWidthInches: 24,
     maxHeightInches: 24,
-    maxWeightPounds: 50,
-    pricing: 'Request a quote',
+    maxWeightPounds: null,
+    pricing: '$75/year add-on or $125/year standalone; handling review required',
     bagsQuotedSeparately: true,
   },
 } as const

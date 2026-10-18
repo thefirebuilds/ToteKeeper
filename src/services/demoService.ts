@@ -1,5 +1,9 @@
 import type { AddDemoToteInput, CreateRequestInput, DemoData, SaveToteInput, ServiceRequest, Tote, ToteSizeId } from '../types'
-import { SERVICE_CONFIG } from '../config/business'
+import { POLICY, SERVICE_CONFIG } from '../config/business'
+import { addExtraCycle, advanceCancellation, createPackage, packageCredits, planFor, quoteOrder, registerBonus, requestCancellation, requireOwner, reserveLeg, validateAppointment, validateMix } from '../domain/operations'
+import type { BulkySelection, CancellationStage, PackageSelection } from '../domain/operations'
+
+const DEMO_CUSTOMER = 'fictional-jamie'
 
 export interface ToteKeeperService {
   getDemoData(): Promise<DemoData>
@@ -9,11 +13,18 @@ export interface ToteKeeperService {
   createRequest(input: CreateRequestInput): Promise<ServiceRequest>
   cancelRequest(requestId: string): Promise<void>
   resetDemo(): Promise<DemoData>
+  enrollDemo(input: { packages: PackageSelection[]; bulky: BulkySelection[]; address: string; agreement: { version: string; accepted: boolean }; serviceSms: boolean; marketingSms: boolean; retryKey: string }): Promise<void>
+  buyExtraCycle(packageId: string): Promise<void>
+  cancelPackage(packageId: string): Promise<void>
+  progressCancellation(packageId: string, next: CancellationStage): Promise<void>
+  simulateCompletedRequest(requestId: string): Promise<void>
 }
 
 const STORAGE_KEY = 'my-tote-keeper-demo-v2'
 const LEGACY_STORAGE_KEY = 'my-tote-keeper-demo-v1'
 const initialData: DemoData = {
+  packages: [createPackage('PKG-DEMO-1', DEMO_CUSTOMER, 'big', 'annual', '2026-03-01T12:00:00Z')],
+  bulkyItems: [], audit: [], cases: [], agreements: [],
   profile: {
     name: 'Jamie Morgan', email: 'jamie@example.test', address: '142 Cedar Hollow Dr',
     city: 'Kyle, TX', zip: '78640', planId: 'big', planCreditAllowance: 10,
@@ -39,12 +50,12 @@ function read(): DemoData {
       return migrated
     }
     const legacy = localStorage.getItem(LEGACY_STORAGE_KEY)
-    if (!legacy) return copy(initialData)
+    if (!legacy) return migrate(copy(initialData) as unknown as Record<string, unknown>)
     const migrated = migrate(JSON.parse(legacy) as Record<string, unknown>)
     write(migrated)
     return migrated
   } catch {
-    return copy(initialData)
+    return migrate(copy(initialData) as unknown as Record<string, unknown>)
   }
 }
 
@@ -59,9 +70,13 @@ function migrate(value: Record<string, unknown>): DemoData {
     profileRecord.planCreditAllowance = plan.credits
   }
   if (!profileRecord.planCreditAllowance) profileRecord.planCreditAllowance = SERVICE_CONFIG.plans.find((plan) => plan.id === profileRecord.planId)?.credits ?? SERVICE_CONFIG.plans[1].credits
+  data.packages ??= [createPackage('PKG-DEMO-1', DEMO_CUSTOMER, planFor(profileRecord.planId as PackageSelection['planId']).id, 'annual', '2026-03-01T12:00:00Z')]
+  data.bulkyItems ??= []; data.audit ??= []; data.cases ??= []; data.agreements ??= []
   for (const tote of data.totes ?? []) {
     if ((tote.size as string) === 'oversized') tote.size = 'xl'
     if (tote.size !== 'large' && tote.size !== 'xl') tote.size = 'large'
+    tote.packageId ??= data.packages[0]?.id
+    if (!data.packages.some(pkg => pkg.id === tote.packageId)) tote.assignmentReviewRequired = true
     const mutable = tote as Tote & { tieNumber?: string }
     if (mutable.tieNumber && !tote.currentSealNumber) {
       if (tote.status === 'In storage') tote.currentSealNumber = mutable.tieNumber
@@ -71,7 +86,24 @@ function migrate(value: Record<string, unknown>): DemoData {
     tote.priorSealNumbers ??= []
     tote.history = (tote.history ?? []).map((movement) => ({ ...movement, operator: movement.operator ?? 'Demo record (fictional)', exteriorCondition: movement.exteriorCondition ?? 'Condition record not supplied in older demo data.', photoStatus: movement.photoStatus ?? 'Demo placeholder, no photo stored' }))
   }
+  for (const request of data.requests ?? []) {
+    if (request.packageId) continue
+    const packageIds = new Set(data.totes.filter(tote => request.toteIds.includes(tote.id)).map(tote => tote.packageId))
+    if (packageIds.size !== 1) continue
+    const pkg = data.packages.find(pkg => pkg.id === [...packageIds][0])
+    if (!pkg) continue
+    request.packageId = pkg.id
+    request.purpose ??= 'Packed belongings'
+    const cycle = pkg.cycles.find(cycle => cycle.kind === 'Included')
+    const leg = cycle?.legs.find(leg => leg.kind === (request.kind === 'Collection' ? 'Packed collection' : 'Packed return'))
+    if (cycle && leg && leg.status === 'Available' && request.status !== 'Cancelled') {
+      request.cycleId = cycle.id; request.legId = leg.id
+      leg.requestId = request.id
+      leg.status = request.status === 'Completed' ? 'Completed' : request.status === 'Confirmed' ? 'Confirmed' : 'Requested'
+    }
+  }
   data.profile = profileRecord
+  data.profile.planCreditAllowance = data.packages.reduce((sum, pkg) => sum + pkg.credits, 0)
   return data
 }
 
@@ -83,16 +115,16 @@ export function creditsForToteSize(size: ToteSizeId): number {
   return SERVICE_CONFIG.toteSizes[size].credits
 }
 
-export function allocatedCredits(data: DemoData): number {
-  return data.totes.reduce((total, tote) => total + creditsForToteSize(tote.size), 0)
+export function allocatedCredits(data: DemoData, packageId?: string): number {
+  return data.totes.filter(tote => !packageId || tote.packageId === packageId).reduce((total, tote) => total + creditsForToteSize(tote.size), 0)
 }
 
 export function isToteEligible(tote: Tote, kind: CreateRequestInput['kind']): boolean {
-  return kind === 'Collection' ? tote.status === 'At home' : tote.status === 'In storage'
+  return kind === 'Collection' ? tote.status === 'At home' && tote.emptyLocation !== 'Company' : tote.status === 'In storage'
 }
 
 export function hasActiveConflict(data: DemoData, toteIds: string[]): boolean {
-  return data.requests.some((request) => request.status !== 'Cancelled' && request.toteIds.some((id) => toteIds.includes(id)))
+  return data.requests.some((request) => request.status !== 'Cancelled' && request.status !== 'Completed' && request.toteIds.some((id) => toteIds.includes(id)))
 }
 
 export function createMockToteKeeperService(): ToteKeeperService {
@@ -112,22 +144,33 @@ export function createMockToteKeeperService(): ToteKeeperService {
     },
     async addDemoTote(input) {
       const data = read()
+      const pkg = data.packages.find(pkg => pkg.id === (input.packageId ?? data.packages[0]?.id))
+      if (!pkg || pkg.cancellation !== 'Active') throw new Error('Choose an active package.')
+      requireOwner(pkg, DEMO_CUSTOMER)
       if (!input.nickname.trim() || !input.description.trim()) throw new Error('Add a nickname and contents description for this tote.')
       if (!input.contentsAcknowledged || input.combinedContentsValue === undefined || !Number.isFinite(input.combinedContentsValue) || input.combinedContentsValue < 0 || input.combinedContentsValue > SERVICE_CONFIG.maxCombinedToteContentsValue) throw new Error(`Complete the packing acknowledgment and keep the combined contents value at or below $${SERVICE_CONFIG.maxCombinedToteContentsValue}.`)
-      const credits = allocatedCredits(data) + creditsForToteSize(input.size)
-      if (credits > data.profile.planCreditAllowance) throw new Error(`This tote would use ${credits} of ${data.profile.planCreditAllowance} plan credits. Choose a smaller tote or ask about a larger plan.`)
+      const credits = packageCredits(data.totes, pkg.id) + creditsForToteSize(input.size)
+      if (credits > pkg.credits) throw new Error(`This tote would use ${credits} of ${pkg.credits} package credits. Choose a smaller tote or purchase another independent package.`)
       const nextNumber = Math.max(1041, ...data.totes.map((tote) => Number(tote.id.replace(/\D/g, '')) || 0)) + 1
-      const tote: Tote = { ...input, id: `MTK-${nextNumber}`, nickname: input.nickname.trim(), description: input.description.trim(), status: input.status, history: [{ date: new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeZone: 'America/Chicago' }).format(new Date()), label: 'Added to demo account', detail: 'Fictional tote record' }] }
+      const tote: Tote = { ...input, packageId: pkg.id, id: `MTK-${nextNumber}`, nickname: input.nickname.trim(), description: input.description.trim(), status: input.status, history: [{ date: new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeZone: 'America/Chicago' }).format(new Date()), label: 'Added to demo account', detail: 'Fictional tote record' }] }
       data.totes.push(tote)
       write(data)
       return structuredClone(tote)
     },
     async createRequest(input) {
       const data = read()
+      validateAppointment(input.preferredDate, input.preferredWindow)
       if (!input.toteIds.length) throw new Error('Choose at least one tote.')
       const selected = data.totes.filter((tote) => input.toteIds.includes(tote.id))
-      if (selected.length !== input.toteIds.length || selected.some((tote) => !isToteEligible(tote, input.kind))) throw new Error('One or more selected totes are not eligible for this request.')
-      if (input.kind === 'Collection') {
+      if (selected.length !== input.toteIds.length || selected.some((tote) => input.purpose === 'Empty totes' ? tote.status !== 'At home' : !isToteEligible(tote, input.kind))) throw new Error('One or more selected totes are not eligible for this request.')
+      if (input.purpose === 'Empty totes' && !input.emptyConfirmed) throw new Error('Confirm these totes are empty; empty-tote handling is not a packed-belongings cycle.')
+      if (input.purpose === 'Final return' && input.kind !== 'Return delivery') throw new Error('A final return delivers belongings back to the customer.')
+      const pkg = data.packages.find(pkg => pkg.id === (input.packageId ?? selected[0]?.packageId))
+      if (!pkg || selected.some(tote => tote.packageId !== pkg.id)) throw new Error('Request one package at a time; package allowances are independent.')
+      requireOwner(pkg, DEMO_CUSTOMER)
+      if (selected.some(tote => tote.assignmentReviewRequired)) throw new Error('An operator must review this tote assignment first.')
+      if (input.unattended?.requested && (!input.unattended.authorized || !input.unattended.location.trim() || !input.unattended.riskAcknowledged)) throw new Error('Record the unattended location, authorization, and theft-risk acknowledgment. Owner approval is still required.')
+      if (input.kind === 'Collection' && (!input.purpose || input.purpose === 'Packed belongings')) {
         const acknowledgements = input.toteAcknowledgements ?? []
         if (acknowledgements.length !== selected.length || selected.some((tote) => {
           const acknowledgement = acknowledgements.find((entry) => entry.toteId === tote.id)
@@ -142,8 +185,15 @@ export function createMockToteKeeperService(): ToteKeeperService {
           }
         }
       }
-      if (hasActiveConflict(data, input.toteIds)) throw new Error('An active request already includes one of those totes.')
-      const request: ServiceRequest = { ...input, id: `REQ-${Math.floor(3000 + Math.random() * 6000)}`, status: 'Awaiting confirmation', createdAt: new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeZone: 'America/Chicago' }).format(new Date()) }
+      if (input.purpose !== 'Final return' && hasActiveConflict(data, input.toteIds)) throw new Error('An active request already includes one of those totes.')
+      const requestId = `REQ-${crypto.randomUUID()}`
+      const purpose = input.purpose ?? 'Packed belongings'
+      const cycle = data.packages.find(item => item.id === pkg.id)!.cycles.find(item => item.id === input.cycleId) ?? pkg.cycles.find(item => item.kind === (purpose === 'Final return' ? 'Cancellation' : 'Included'))
+      if (!cycle) throw new Error('Choose a valid service cycle.')
+      if (input.cycleId && cycle.id !== input.cycleId) throw new Error('That cycle does not belong to this package.')
+      const legKind = purpose === 'Final return' ? 'Final return' : purpose === 'Empty totes' ? (input.emptyAction === 'Initial delivery' ? 'Initial empty delivery' : input.emptyAction === 'Redelivery' ? 'Empty redelivery' : 'Empty collection') : input.kind === 'Collection' ? 'Packed collection' : 'Packed return'
+      const leg = reserveLeg(pkg, DEMO_CUSTOMER, cycle.id, legKind, requestId)
+      const request: ServiceRequest = { ...input, packageId: pkg.id, cycleId: cycle.id, legId: leg.id, purpose, unattended: input.unattended ? { ...input.unattended, agreedByOwner: false, authorizedAt: new Date().toISOString() } : undefined, id: requestId, status: 'Awaiting confirmation', createdAt: new Date().toISOString() }
       data.requests.unshift(request)
       write(data)
       return request
@@ -159,12 +209,79 @@ export function createMockToteKeeperService(): ToteKeeperService {
       const request = data.requests.find((item) => item.id === requestId)
       if (!request || request.status !== 'Awaiting confirmation') throw new Error('Only unconfirmed requests can be cancelled.')
       request.status = 'Cancelled'
+      const leg = data.packages.flatMap(pkg => pkg.cycles.flatMap(cycle => cycle.legs)).find(leg => leg.requestId === requestId)
+      if (leg?.status === 'Requested') { leg.status = 'Available'; delete leg.requestId }
       write(data)
     },
     async resetDemo() {
       localStorage.removeItem(STORAGE_KEY)
       localStorage.removeItem(LEGACY_STORAGE_KEY)
-      return copy(initialData)
+      return migrate(copy(initialData) as unknown as Record<string, unknown>)
+    },
+    async enrollDemo(input) {
+      const data = read()
+      if (data.audit.some(event => event.action === `enroll:${input.retryKey}`)) return
+      if (!input.retryKey || !input.agreement.accepted || input.agreement.version !== POLICY.agreement.version) throw new Error('Acknowledge the current demo policy preview. It is not an approved storage agreement.')
+      quoteOrder(input.packages, input.bulky, input.address)
+      if (input.packages.some(pkg => pkg.billing === 'monthly')) throw new Error('Monthly enrollment is in review until the setup charge and refundability are configured.')
+      const ids: string[] = []
+      for (const selection of input.packages) {
+        validateMix(selection)
+        const id = `PKG-${crypto.randomUUID()}`; ids.push(id)
+        const pkg = createPackage(id, DEMO_CUSTOMER, selection.planId, selection.billing, new Date().toISOString())
+        data.packages.push(pkg)
+        for (const size of ['large', 'xl'] as const) for (let i = 0; i < selection[size]; i++) data.totes.push({ id: `MTK-${crypto.randomUUID()}`, packageId: id, size, nickname: `New ${size === 'xl' ? 'XL' : 'Large'} tote`, category: 'Unpacked demo tote', description: '', status: 'At home', history: [] })
+      }
+      for (const selection of input.bulky) {
+        const id = `BULK-${crypto.randomUUID()}`; const pkg = selection.packageIndex === undefined ? undefined : data.packages.find(pkg => pkg.id === ids[selection.packageIndex!])
+        if (selection.useBonus && pkg) registerBonus(pkg, id)
+        const custom = selection.type === 'Other' || selection.dimensions.some((n, i) => n > [54, 24, 24][i])
+        data.bulkyItems.push({ id, customerId: DEMO_CUSTOMER, packageId: pkg?.id, type: selection.type, dimensions: selection.dimensions, value: selection.value, pricing: custom ? 'Custom quote' : selection.useBonus ? 'Bonus' : pkg ? 'Add-on' : 'Standalone', annualPrice: custom ? null : selection.useBonus ? 0 : pkg ? 75 : 125, handlingStatus: 'Operator review', standaloneCycle: !pkg && !custom ? { id: `${id}-cycle`, kind: 'Included', price: 0, payment: 'Included', legs: [{ id: `${id}-collect`, kind: 'Packed collection', status: 'Available' }, { id: `${id}-return`, kind: 'Packed return', status: 'Available' }] } : undefined })
+      }
+      data.audit.push({ at: new Date().toISOString(), action: `enroll:${input.retryKey}`, detail: `Fictional enrollment only; policy preview ${input.agreement.version}; no payment, no eligibility approval, no legal agreement.` })
+      data.consents = { serviceSms: input.serviceSms, marketingSms: input.marketingSms, optedOut: false, recordedAt: new Date().toISOString() }
+      data.agreements.push({ version: input.agreement.version, acceptedAt: new Date().toISOString(), mode: 'Fictional preview' })
+      write(data)
+    },
+    async buyExtraCycle(packageId) {
+      const data = read(); const pkg = data.packages.find(pkg => pkg.id === packageId)
+      if (!pkg) throw new Error('Package not found.')
+      requireOwner(pkg, DEMO_CUSTOMER); addExtraCycle(pkg, `CYCLE-${crypto.randomUUID()}`)
+      data.audit.push({ at: new Date().toISOString(), action: 'Demo extra cycle', packageId, detail: '$50 round trip; simulated, no payment collected.' }); write(data)
+    },
+    async cancelPackage(packageId) {
+      const data = read(); const pkg = data.packages.find(pkg => pkg.id === packageId)
+      if (!pkg) throw new Error('Package not found.')
+      requestCancellation(pkg, DEMO_CUSTOMER, new Date().toISOString())
+      for (const request of data.requests.filter(request => request.packageId === packageId && request.status === 'Awaiting confirmation' && request.purpose !== 'Final return')) {
+        request.status = 'Cancelled'
+        const leg = pkg.cycles.flatMap(cycle => cycle.legs).find(leg => leg.id === request.legId)
+        if (leg?.status === 'Requested') { leg.status = 'Available'; delete leg.requestId }
+      }
+      data.audit.push({ at: new Date().toISOString(), action: 'Cancellation requested', packageId, detail: 'Stop future renewal; coordinate free final return immediately. No refund of committed charges, no penalty.' }); write(data)
+    },
+    async progressCancellation(packageId, next) {
+      const data = read(); const pkg = data.packages.find(pkg => pkg.id === packageId)
+      if (!pkg) throw new Error('Package not found.')
+      requireOwner(pkg, DEMO_CUSTOMER); advanceCancellation(pkg, next)
+      data.audit.push({ at: new Date().toISOString(), action: next, packageId, detail: 'Fictional operator progression; production requires operator authorization and fulfillment evidence.' }); write(data)
+    },
+    async simulateCompletedRequest(requestId) {
+      const data = read(); const request = data.requests.find(request => request.id === requestId)
+      if (!request || request.status === 'Cancelled') throw new Error('Choose an active request.')
+      const pkg = data.packages.find(pkg => pkg.id === request.packageId)
+      if (!pkg) throw new Error('Package not found.')
+      requireOwner(pkg, DEMO_CUSTOMER)
+      const leg = pkg.cycles.flatMap(cycle => cycle.legs).find(leg => leg.id === request.legId)
+      if (!leg) throw new Error('Trip leg not found.')
+      leg.status = 'Completed'; leg.completedAt = new Date().toISOString()
+      request.status = 'Completed'
+      for (const tote of data.totes.filter(tote => request.toteIds.includes(tote.id))) {
+        if (request.purpose !== 'Empty totes') tote.status = request.kind === 'Collection' ? 'In storage' : 'At home'
+        else tote.emptyLocation = request.kind === 'Collection' ? 'Company' : 'Customer'
+        tote.history.unshift({ date: new Date().toISOString(), label: `Demo ${leg.kind}`, detail: 'Simulated handoff; no actual appointment or photo.', operator: 'Fictional operator simulation' })
+      }
+      data.audit.push({ at: new Date().toISOString(), action: 'Demo trip completed', packageId: pkg.id, detail: `${request.id}: ${leg.kind}` }); write(data)
     },
   }
 }

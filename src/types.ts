@@ -1,7 +1,9 @@
+import type { BulkyRecord, ConsentRecord, DemoAudit, PackageRecord, ReviewCase } from './domain/operations'
+
 export type ToteStatus = 'At home' | 'In storage'
 export type ToteSizeId = 'large' | 'xl'
 export type RequestKind = 'Collection' | 'Return delivery'
-export type RequestStatus = 'Awaiting confirmation' | 'Confirmed' | 'Cancelled'
+export type RequestStatus = 'Awaiting confirmation' | 'Confirmed' | 'Cancelled' | 'Completed'
 
 export interface ToteMovement {
   date: string
@@ -16,6 +18,9 @@ export interface ToteMovement {
 export interface Tote {
   id: string
   size: ToteSizeId
+  packageId?: string
+  assignmentReviewRequired?: boolean
+  emptyLocation?: 'Customer' | 'Company'
   nickname: string
   category: string
   description: string
@@ -40,6 +45,12 @@ export interface ServiceRequest {
   status: RequestStatus
   createdAt: string
   confirmedAppointment?: string
+  packageId?: string
+  cycleId?: string
+  legId?: string
+  purpose?: 'Packed belongings' | 'Empty totes' | 'Final return'
+  packingPreference?: string
+  unattended?: { requested: boolean; location: string; authorized: boolean; agreedByOwner: boolean; authorizedAt?: string; riskAcknowledged: boolean }
 }
 
 export interface DemoProfile {
@@ -56,6 +67,12 @@ export interface DemoData {
   profile: DemoProfile
   totes: Tote[]
   requests: ServiceRequest[]
+  packages: PackageRecord[]
+  bulkyItems: BulkyRecord[]
+  audit: DemoAudit[]
+  consents?: ConsentRecord
+  cases: ReviewCase[]
+  agreements: { version: string; acceptedAt: string; mode: 'Fictional preview' }[]
 }
 
 export interface CreateRequestInput {
@@ -65,6 +82,13 @@ export interface CreateRequestInput {
   preferredWindow: string
   address: string
   instructions: string
+  packageId?: string
+  cycleId?: string
+  purpose?: 'Packed belongings' | 'Empty totes' | 'Final return'
+  emptyAction?: 'Collection' | 'Redelivery' | 'Initial delivery'
+  emptyConfirmed?: boolean
+  packingPreference?: string
+  unattended?: ServiceRequest['unattended']
   toteAcknowledgements?: Array<{
     toteId: string
     contentsDescription: string
@@ -81,6 +105,7 @@ export interface SaveToteInput {
 }
 
 export interface AddDemoToteInput extends SaveToteInput {
+  packageId?: string
   size: ToteSizeId
   category: string
   status: ToteStatus

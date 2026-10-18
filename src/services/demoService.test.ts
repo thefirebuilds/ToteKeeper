@@ -84,7 +84,7 @@ describe('demo request rules', () => {
     for (let index = 0; index < 3; index += 1) await service.addDemoTote({ size: 'xl', nickname: `Packed XL tote ${index + 1}`, category: 'Holiday décor', description: 'Clean seasonal bedding', status: 'At home', combinedContentsValue: 80, contentsAcknowledged: true })
     const data = await service.getDemoData()
     expect(data.totes.reduce((sum, tote) => sum + SERVICE_CONFIG.toteSizes[tote.size].credits, 0)).toBe(10)
-    await expect(service.addDemoTote({ size: 'xl', nickname: 'Extra XL tote', category: 'Seasonal', description: 'Demo item', status: 'At home', combinedContentsValue: 50, contentsAcknowledged: true })).rejects.toThrow('would use 12 of 10 plan credits')
+    await expect(service.addDemoTote({ size: 'xl', nickname: 'Extra XL tote', category: 'Seasonal', description: 'Demo item', status: 'At home', combinedContentsValue: 50, contentsAcknowledged: true })).rejects.toThrow('would use 12 of 10 package credits')
   })
 
   it('keeps concern reports fictional and unpersisted', async () => {
@@ -112,5 +112,54 @@ describe('demo request rules', () => {
     expect(await service.resetDemo()).toEqual(original)
     expect(memory.size).toBe(0)
     expect(await service.getDemoData()).toEqual(original)
+  })
+
+  it('keeps new package allocation and retried fictional enrollment independent', async () => {
+    const service = createMockToteKeeperService()
+    const input = { packages: [{ planId: 'small' as const, billing: 'annual' as const, large: 0, xl: 1 }], bulky: [], address: 'Fictional address', agreement: { version: 'business-preview-v1', accepted: true }, serviceSms: false, marketingSms: false, retryKey: 'same-attempt' }
+    await service.enrollDemo(input); await service.enrollDemo(input)
+    const data = await service.getDemoData()
+    expect(data.packages).toHaveLength(2)
+    expect(data.agreements).toHaveLength(1)
+    expect(data.agreements[0].mode).toBe('Fictional preview')
+    const pkg = data.packages[1]
+    await expect(service.addDemoTote({ packageId: pkg.id, size: 'large', nickname: 'Extra', description: 'Linens', category: 'Seasonal', status: 'At home', contentsAcknowledged: true, combinedContentsValue: 20 })).rejects.toThrow('3 of 2 package credits')
+    expect(data.packages[0].credits).toBe(10)
+    await expect(service.enrollDemo({ ...input, retryKey: 'monthly', packages: [{ ...input.packages[0], billing: 'monthly' }] })).rejects.toThrow('setup charge')
+    expect((await service.getDemoData()).packages).toHaveLength(2)
+  })
+
+  it('reserves a partial return, tracks both extra-cycle legs, then allows free cancellation return', async () => {
+    const service = createMockToteKeeperService()
+    const data = await service.getDemoData(); const packageId = data.packages[0].id
+    const preferredDate = '2030-11-17'
+    const base = { kind: 'Return delivery' as const, packageId, preferredDate, preferredWindow: 'Weekend evening, 4–7 pm', address: 'Fictional address', instructions: '' }
+    const partial = await service.createRequest({ ...base, toteIds: ['MTK-1042'] })
+    await expect(service.createRequest({ ...base, toteIds: ['MTK-1044'] })).rejects.toThrow('partial return')
+    await service.simulateCompletedRequest(partial.id)
+    await service.buyExtraCycle(packageId)
+    let updated = await service.getDemoData(); const extraId = updated.packages[0].cycles.find(cycle => cycle.kind === 'Extra')!.id
+    const dropoff = await service.createRequest({ ...base, cycleId: extraId, toteIds: ['MTK-1044'] })
+    await service.simulateCompletedRequest(dropoff.id)
+    const pickup = await service.createRequest({ ...base, kind: 'Collection', cycleId: extraId, toteIds: ['MTK-1044'], toteAcknowledgements: [{ toteId: 'MTK-1044', contentsDescription: 'Clean bedding', combinedContentsValue: 100, acknowledged: true }] })
+    await service.simulateCompletedRequest(pickup.id)
+    updated = await service.getDemoData()
+    expect(updated.packages[0].cycles.find(cycle => cycle.id === extraId)!.legs.every(leg => leg.status === 'Completed')).toBe(true)
+    await service.cancelPackage(packageId)
+    updated = await service.getDemoData()
+    expect(updated.packages[0].renewalEnabled).toBe(false)
+    const final = await service.createRequest({ ...base, purpose: 'Final return', toteIds: ['MTK-1044'] })
+    expect(final.purpose).toBe('Final return')
+    expect(updated.packages[0].cycles.find(cycle => cycle.kind === 'Cancellation')!.price).toBe(0)
+  })
+
+  it('records unattended authorization without claiming owner approval or accepting arbitrary windows', async () => {
+    const service = createMockToteKeeperService()
+    const input = { kind: 'Return delivery' as const, toteIds: ['MTK-1042'], preferredDate: '2030-11-17', preferredWindow: 'Weekend evening, 4–7 pm', address: 'Fictional address', instructions: '', unattended: { requested: true, location: 'Fictional porch', authorized: true, agreedByOwner: true, riskAcknowledged: false } }
+    await expect(service.createRequest(input)).rejects.toThrow('theft-risk')
+    const request = await service.createRequest({ ...input, unattended: { ...input.unattended, riskAcknowledged: true } })
+    expect(request.unattended?.agreedByOwner).toBe(false)
+    expect(request.unattended?.authorizedAt).toBeTruthy()
+    expect(request.confirmedAppointment).toBeUndefined()
   })
 })
