@@ -6,10 +6,11 @@ export const BRAND = {
 export const DEMO_PORTAL_ENABLED = true
 
 export const SERVICE_CONFIG = {
-  pilotLocations: ['Buda', 'Kyle'],
+  serviceAreas: ['Buda', 'Kyle', 'San Marcos', 'Austin'],
   state: 'Texas',
   currency: 'USD',
   annualVisitsIncluded: { collection: 1, returnDelivery: 1 },
+  maxCombinedToteContentsValue: 200,
   toteTerms: {
     monthlyDepositPerTote: 25,
     annualPrepay: 'Totes are provided for use at no added charge with annual prepayment.',
@@ -22,12 +23,14 @@ export const SERVICE_CONFIG = {
     { totes: 10, annualPrice: 599, note: 'Your garage has other ambitions.', featured: false },
   ],
   oversizedEstimates: [
-    { label: '12-foot disassembled skeleton', estimate: '$50/year' },
-    { label: 'Snowboard bag', estimate: '$50/year' },
-    { label: 'Packed Christmas tree', estimate: '$50/year' },
-    { label: 'Canoe', estimate: '$100/year' },
-    { label: 'Other larger or awkward items', estimate: 'Custom quote' },
+    { label: '12-foot skeleton, disassembled and packed', estimate: 'Request a quote' },
+    { label: 'Snowboard bag', estimate: 'Request a quote' },
+    { label: 'Packed Christmas tree', estimate: 'Request a quote' },
+    { label: 'Other larger items', estimate: 'Request a quote' },
   ],
 } as const
 
+export const TOTE_CONTENTS_ACKNOWLEDGMENT = `I confirm that this tote’s contents have a combined value of no more than $${SERVICE_CONFIG.maxCombinedToteContentsValue}, are clean and dry, and comply with the packing guidelines. It contains no prohibited valuables, irreplaceable items, food, perishables, firearms, ammunition, fireworks, fuel, hazardous materials, or unapproved batteries.`
+
 export const formatUsd = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: SERVICE_CONFIG.currency, maximumFractionDigits: 0 }).format(amount)
+export const formatMonthlyEquivalent = (annualPrice: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: SERVICE_CONFIG.currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(annualPrice / 12)

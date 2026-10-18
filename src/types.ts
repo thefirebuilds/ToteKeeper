@@ -13,6 +13,8 @@ export interface Tote {
   nickname: string
   category: string
   description: string
+  combinedContentsValue?: number
+  contentsAcknowledged?: boolean
   status: ToteStatus
   tieNumber?: string
   history: ToteMovement[]
@@ -54,4 +56,17 @@ export interface CreateRequestInput {
   preferredWindow: string
   address: string
   instructions: string
+  toteAcknowledgements?: Array<{
+    toteId: string
+    contentsDescription: string
+    combinedContentsValue: number
+    acknowledged: boolean
+  }>
+}
+
+export interface SaveToteInput {
+  nickname: string
+  description: string
+  combinedContentsValue?: number
+  contentsAcknowledged?: boolean
 }
