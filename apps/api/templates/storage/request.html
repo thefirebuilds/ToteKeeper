@@ -1,0 +1,1 @@
+{% extends 'base.html' %}{% block content %}<a href="{% url 'requests' %}">← Request history</a><h1>Request details</h1>{% include 'storage/request_summary.html' %}{% if service.status == 'requested' %}<form method="post" action="{% url 'request-cancel' service.pk %}">{% csrf_token %}<button class="secondary">Cancel unconfirmed request</button></form>{% endif %}{% endblock %}
