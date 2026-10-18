@@ -1,4 +1,5 @@
 export type ToteStatus = 'At home' | 'In storage'
+export type ToteSizeId = 'large' | 'oversized'
 export type RequestKind = 'Collection' | 'Return delivery'
 export type RequestStatus = 'Awaiting confirmation' | 'Confirmed' | 'Cancelled'
 
@@ -6,17 +7,25 @@ export interface ToteMovement {
   date: string
   label: string
   detail: string
+  operator?: string
+  sealNumber?: string
+  exteriorCondition?: string
+  photoStatus?: string
 }
 
 export interface Tote {
   id: string
+  size: ToteSizeId
   nickname: string
   category: string
   description: string
   combinedContentsValue?: number
   contentsAcknowledged?: boolean
   status: ToteStatus
-  tieNumber?: string
+  currentSealNumber?: string
+  priorSealNumbers?: string[]
+  exteriorCondition?: string
+  exteriorPhotoStatus?: string
   history: ToteMovement[]
 }
 
@@ -39,8 +48,8 @@ export interface DemoProfile {
   address: string
   city: string
   zip: string
-  plan: string
-  toteAllowance: number
+  planId: string
+  planCreditAllowance: number
 }
 
 export interface DemoData {
@@ -69,4 +78,11 @@ export interface SaveToteInput {
   description: string
   combinedContentsValue?: number
   contentsAcknowledged?: boolean
+}
+
+export interface AddDemoToteInput extends SaveToteInput {
+  size: ToteSizeId
+  category: string
+  status: ToteStatus
+  tieNumber?: string
 }

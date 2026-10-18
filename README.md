@@ -61,13 +61,19 @@ The deployment mirrors the generated site with `--delete` into the SFTP login's 
 
 ## Business settings
 
-Annual plan prices, month-to-month tote deposit, annual-prepay tote terms, service-area names, included annual visits, and oversized-item quote examples are centralized in `src/config/business.ts`. Annual prices are billed annually; monthly equivalents are display-only, not monthly billing rates. Annual-prepay totals equal the annual plan prices because standardized totes are provided for use at no added charge. Totes remain My Tote Keeper property and are returned when storage ends. Deposit return conditions need to be confirmed before signup. Oversized items require quotes, not fixed-price booking.
+Annual plan prices, month-to-month tote rental rates, monthly tote deposit, annual-prepay tote terms, service-area names, included annual visits, and oversized-item quote examples are centralized in `src/config/business.ts`. Month-to-month rental is billed at the displayed monthly rate and requires a deposit per tote. Annual prepayment uses the discounted annual rate and waives the tote deposit. The savings display compares 12 monthly payments against the annual price. Totes remain My Tote Keeper property and are returned when storage ends. Deposit return conditions need to be confirmed before signup. Oversized items require quotes, not fixed-price booking.
 
 The public service-area wording lists Buda, Kyle, San Marcos, Austin, and surrounding areas, but address availability depends on scheduling and must be confirmed. Appointment requests ask for 48 hours' notice and are not confirmed until staff confirmation. Evening and weekend preferences are shown in the demo.
 
 The proposed pilot liability wording is subject to finalized storage-agreement terms: eligible loss or damage for which the service is responsible would be reimbursed based on actual covered loss, up to $200 per tote. This is a contractual liability limit, not insurance. Every tote also has a maximum combined contents value of $200; this is not a per-item allowance and does not make prohibited belongings acceptable. Separately quoted oversized items need their own agreed value and terms. The storage agreement and valuation method require final business and legal review. Cancellation transport and prepaid-fee policies remain unresolved; any additional visit charge must be agreed before scheduling.
 
 The customer demo requires a separate, unchecked per-tote acknowledgment of combined value and packing rules before collection requests can be submitted. These fictional local-demo acknowledgments do not create a storage agreement. Full prohibited-item rules are published in the expandable packing guidelines on the marketing page.
+
+Trust-process card labels and owner/contact placeholders are in `src/config/business.ts`. Update these values when operating practices, owner introduction, and direct contact channel have been verified. Do not remove the planned/unconfirmed labels until the practices are actually in place.
+
+## Trust-practice launch decisions
+
+Public trust copy identifies operational practices as planned or unconfirmed rather than active guarantees. Before launch, confirm authorized handlers and facility access, actual security arrangements, packed-weight limits, the off-floor storage method, inspection frequency and pest-control arrangements, the tote/seal/condition-record procedure, and the real contact channel for concern reports. The concern form and receipt/photo areas in the portal are demo-only; they do not transmit or save reports or images.
 
 The portal shows a planned photo-inventory feature but has no upload control or image storage. Numbered tamper-evident tie identifiers are fictional demo data. Ties can show visible signs if broken or missing, but are not a security guarantee. A production inventory needs an authenticated upload API, storage/retention rules, access control, and privacy policy before collecting customer photos.
 
