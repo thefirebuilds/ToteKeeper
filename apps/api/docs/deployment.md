@@ -67,3 +67,5 @@ Use code matching the dump revision and point an isolated app at the restored da
 ## Rollback
 
 Application-only rollback is safe only if prior code supports the current schema. Stop app/proxy, check out the prior approved revision, rebuild and restart with the production override. Do not automatically reverse migrations; data migrations and subsequent writes may be irreversible. For incompatible changes prefer a forward fix or restore the pre-release backup into a separate database and cut over using matching code. Preserve database and certificate volumes throughout.
+
+For HTTPS email delivery through a Gmail sender, see [Gmail API setup](../../../docs/GMAIL_API.md). Select `EMAIL_BACKEND=config.gmail.GmailAPIBackend` and configure the three OAuth values plus `DEFAULT_FROM_EMAIL`; SMTP settings are then not required.

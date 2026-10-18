@@ -31,3 +31,5 @@ For native backend setup, work in apps/api: create .venv, install requirements.l
 The optional Node Stripe sandbox remains an independent opt-in development tool in apps/web. It is not Octagon and is not deployed. Its existing /api/sandbox proxy takes precedence locally.
 
 Dedicated server publishing: [GitHub Actions setup and required configuration](docs/SERVER_DEPLOYMENT.md) for 162.243.163.103.
+
+Gmail sender setup without SMTP: [Gmail API over HTTPS](docs/GMAIL_API.md).

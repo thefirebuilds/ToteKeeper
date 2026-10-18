@@ -96,8 +96,20 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'true').lower() == 'true'
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'local@example.invalid')
 EMAIL_TIMEOUT = 10
-if not DEBUG and (not EMAIL_HOST or DEFAULT_FROM_EMAIL.endswith('.invalid') or EMAIL_BACKEND != 'django.core.mail.backends.smtp.EmailBackend'):
-    raise ImproperlyConfigured('Production requires SMTP EMAIL_HOST, DEFAULT_FROM_EMAIL and the SMTP email backend.')
+GMAIL_CLIENT_ID = os.getenv('GMAIL_CLIENT_ID', '')
+GMAIL_CLIENT_SECRET = os.getenv('GMAIL_CLIENT_SECRET', '')
+GMAIL_REFRESH_TOKEN = os.getenv('GMAIL_REFRESH_TOKEN', '')
+if not DEBUG:
+    if DEFAULT_FROM_EMAIL.endswith('.invalid') or not DEFAULT_FROM_EMAIL:
+        raise ImproperlyConfigured('Production requires a real DEFAULT_FROM_EMAIL sender address.')
+    if EMAIL_BACKEND == 'config.gmail.GmailAPIBackend':
+        if not all([GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN]):
+            raise ImproperlyConfigured('Gmail API requires GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET and GMAIL_REFRESH_TOKEN.')
+    elif EMAIL_BACKEND == 'django.core.mail.backends.smtp.EmailBackend':
+        if not EMAIL_HOST:
+            raise ImproperlyConfigured('SMTP requires EMAIL_HOST.')
+    else:
+        raise ImproperlyConfigured('Production requires the SMTP or Gmail API email backend.')
 if not DEBUG and (any(not x.startswith('https://') or '*' in x for x in CSRF_TRUSTED_ORIGINS) or any('*' in x or x.startswith('.') for x in ALLOWED_HOSTS)):
     raise ImproperlyConfigured('Production requires explicit ALLOWED_HOSTS and HTTPS trusted origins.')
 SERVER_EMAIL = DEFAULT_FROM_EMAIL

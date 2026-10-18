@@ -36,7 +36,7 @@ Replace example domains. Complete all backend settings, including:
 - Strong `POSTGRES_PASSWORD`; `POSTGRES_DB=octagon`, `POSTGRES_USER=octagon`, `POSTGRES_PORT=5432`. The deployment sets `POSTGRES_HOST=db`. Do not change an existing database role's password only by editing the env file.
 - `ALLOWED_HOSTS=totekeeper.com,portal.totekeeper.com` and `CSRF_TRUSTED_ORIGINS=https://totekeeper.com,https://portal.totekeeper.com` using your domains.
 - `PUBLIC_BASE_URL=https://portal.totekeeper.com` so existing email, login and billing return paths remain valid.
-- Real SMTP configuration and `DEFAULT_FROM_EMAIL`, Stripe secret/webhook keys, portal configuration, and business contact values described in `apps/api/.env.example`.
+- Email delivery and `DEFAULT_FROM_EMAIL`: use the [Gmail API over HTTPS](GMAIL_API.md) on DigitalOcean (SMTP ports may be blocked), or configure an available SMTP service. Also supply Stripe secret/webhook keys, portal configuration and business contact values described in `apps/api/.env.example`.
 
 Never put these secrets in frontend `VITE_*` variables or in a tracked file. Actions does not upload an env file and does not print Compose's resolved environment. The optional Node Stripe sandbox is not deployed. Both webhook routes retain the same Django signature checks.
 

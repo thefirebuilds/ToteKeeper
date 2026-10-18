@@ -7,3 +7,4 @@ django-allauth[mfa]>=65.20,<66
 stripe>=14.4,<15
 Pillow>=12.3,<13
 cryptography>=48,<49
+requests>=2.34,<3

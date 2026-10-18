@@ -34,3 +34,6 @@ __pycache__/
 *.sqlite3
 staticfiles/
 backups/
+
+# Downloaded Google OAuth client credentials
+client_secret*.json
