@@ -1,0 +1,108 @@
+name: Deploy dedicated server
+run-name: Deploy ${{ github.sha }} to 162.243.163.103
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: totekeeper-server-production
+  cancel-in-progress: false
+jobs:
+  configuration:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check deployment scripts
+        run: |
+          node --test infrastructure/server/deploy.test.mjs
+          bash -n infrastructure/server/deploy.sh
+          bash -n infrastructure/server/install-release.sh
+          shellcheck infrastructure/server/deploy.sh infrastructure/server/install-release.sh
+      - name: Validate production Compose and Caddy configuration
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+          POSTGRES_PASSWORD: ci-validation-only
+          WEB_DOMAIN: web.example.invalid
+          PORTAL_DOMAIN: portal.example.invalid
+          ACME_EMAIL: ops@example.com
+        run: |
+          sudo install -d -o "$(id -u)" -g "$(id -g)" -m 700 /opt/totekeeper/shared
+          touch /opt/totekeeper/shared/.env
+          chmod 600 /opt/totekeeper/shared/.env
+          docker compose -f infrastructure/server/compose.yaml config --quiet
+          docker run --rm -e WEB_DOMAIN -e PORTAL_DOMAIN -e ACME_EMAIL \
+            -v "$PWD/infrastructure/server/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+  web:
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/web-ci.yml
+  api:
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/api-ci.yml
+  deploy:
+    needs: [configuration, web, api]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment: production
+    env:
+      DEPLOY_HOST: 162.243.163.103
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '22' }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Build frontend
+        working-directory: apps/web
+        env:
+          VITE_STRIPE_SANDBOX_ENABLED: 'false'
+        run: |
+          npm ci
+          npm run build
+      - name: Package committed source and frontend build
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/release"
+          git archive HEAD | tar -x -C "$RUNNER_TEMP/release"
+          cp -a apps/web/dist "$RUNNER_TEMP/release/apps/web/dist"
+          tar -czf "$RUNNER_TEMP/release.tar.gz" -C "$RUNNER_TEMP/release" .
+      - name: Configure pinned SSH connection
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          [[ "$DEPLOY_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]
+          [[ "$DEPLOY_PORT" =~ ^[0-9]{1,5}$ ]]
+          test -n "$SSH_PRIVATE_KEY"
+          test -n "$SSH_KNOWN_HOSTS"
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
+          cat > "$HOME/.ssh/config" <<EOF
+          Host totekeeper-production
+            HostName $DEPLOY_HOST
+            User $DEPLOY_USER
+            Port $DEPLOY_PORT
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            BatchMode yes
+            StrictHostKeyChecking yes
+            ServerAliveInterval 30
+            ServerAliveCountMax 10
+          EOF
+          chmod 600 "$HOME/.ssh/config"
+      - name: Upload and deploy immutable release
+        run: |
+          set -euo pipefail
+          archive_hash=$(sha256sum "$RUNNER_TEMP/release.tar.gz" | cut -d ' ' -f 1)
+          ssh totekeeper-production 'test -d /opt/totekeeper/incoming && test -d /opt/totekeeper/releases && test -f /opt/totekeeper/shared/.env && docker compose version >/dev/null'
+          scp "$RUNNER_TEMP/release.tar.gz" "totekeeper-production:/opt/totekeeper/incoming/$GITHUB_SHA.tar.gz.part"
+          ssh totekeeper-production "bash -s -- '$GITHUB_SHA' '$archive_hash'" < infrastructure/server/install-release.sh
+      - name: Remove runner SSH credentials
+        if: always()
+        run: rm -f "$HOME/.ssh/deploy_key" "$HOME/.ssh/config" "$HOME/.ssh/known_hosts"

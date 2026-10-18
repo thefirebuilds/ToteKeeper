@@ -29,3 +29,5 @@ After setup, run **npm run dev** from this directory to start Vite, Django and t
 For native backend setup, work in apps/api: create .venv, install requirements.lock, set DEBUG=true and USE_SQLITE=true, then run python manage.py migrate. Activate that environment before the root launcher, or set PYTHON to its executable. The launcher uses apps/api/.venv automatically when present. Backend checks: python manage.py check; python manage.py makemigrations --check --dry-run; python manage.py test; python manage.py collectstatic --noinput. PostgreSQL and Docker validation commands remain in the backend README.
 
 The optional Node Stripe sandbox remains an independent opt-in development tool in apps/web. It is not Octagon and is not deployed. Its existing /api/sandbox proxy takes precedence locally.
+
+Dedicated server publishing: [GitHub Actions setup and required configuration](docs/SERVER_DEPLOYMENT.md) for 162.243.163.103.

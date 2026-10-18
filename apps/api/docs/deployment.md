@@ -1,6 +1,6 @@
 # Deployment and operations
 
-No infrastructure has been created. This is a manual GitHub-to-droplet process with no automatic deployment workflow. Use a Linux droplet with Git, Docker Engine, Compose v2 and a separately managed off-host backup destination. No configuration from another project is assumed.
+For the monorepo dedicated-server GitHub Actions workflow, use [the server deployment guide](../../../docs/SERVER_DEPLOYMENT.md). The commands below remain the backend-only manual deployment and recovery reference. Use a Linux droplet with Git, Docker Engine, Compose v2 and a separately managed off-host backup destination. No configuration from another project is assumed.
 
 Configuration follows the [Django deployment checklist](https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/). Login limiting uses [Django Axes](https://django-axes.readthedocs.io/en/stable/).
 

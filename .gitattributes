@@ -1,0 +1,2 @@
+infrastructure/server/*.sh text eol=lf
+infrastructure/server/Caddyfile text eol=lf

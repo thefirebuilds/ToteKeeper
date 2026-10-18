@@ -1,0 +1,20 @@
+{
+    email {$ACME_EMAIL}
+}
+{$WEB_DOMAIN} {
+    encode zstd gzip
+    @backend path /api /api/* /stripe/webhook /stripe/webhook/*
+    handle @backend {
+        reverse_proxy app:8000
+    }
+    handle {
+        root * /srv/web
+        try_files {path} /index.html
+        file_server
+    }
+}
+{$PORTAL_DOMAIN} {
+    encode zstd gzip
+    reverse_proxy app:8000
+}
+# Access logging disabled: URLs can contain sensitive tokens.

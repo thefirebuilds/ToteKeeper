@@ -1,0 +1,67 @@
+name: totekeeper
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-octagon}
+      POSTGRES_USER: ${POSTGRES_USER:-octagon}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+  app:
+    build: ../../apps/api
+    image: totekeeper-api:${RELEASE_SHA:?Set RELEASE_SHA}
+    env_file: /opt/totekeeper/shared/.env
+    environment:
+      DEBUG: 'false'
+      USE_SQLITE: 'false'
+      POSTGRES_HOST: db
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, python, manage.py, healthcheck]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+    restart: unless-stopped
+  worker:
+    image: totekeeper-api:${RELEASE_SHA:?Set RELEASE_SHA}
+    env_file: /opt/totekeeper/shared/.env
+    environment:
+      DEBUG: 'false'
+      USE_SQLITE: 'false'
+      POSTGRES_HOST: db
+    command: [python, manage.py, run_jobs]
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+  proxy:
+    image: caddy:2-alpine
+    environment:
+      WEB_DOMAIN: ${WEB_DOMAIN:?Configure WEB_DOMAIN}
+      PORTAL_DOMAIN: ${PORTAL_DOMAIN:?Configure PORTAL_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?Configure ACME_EMAIL}
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../../apps/web/dist:/srv/web:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
