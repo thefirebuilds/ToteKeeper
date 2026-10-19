@@ -20,7 +20,7 @@ export const POLICY = {
   extraCyclePrice: 50,
   bulky: { addOnAnnualPrice: 75, standaloneAnnualPrice: 125, envelopeInches: [54, 24, 24], approvedWeightPounds: null, handlingApprovalRequired: true },
   scheduling: {
-    noticeHours: 48,
+    noticeHours: 72,
     windows: ['Weekday evening, 4–7 pm', 'Weekend morning, 8 am–12 pm', 'Weekend afternoon, 12–4 pm', 'Weekend evening, 4–7 pm'],
     blackoutDates: [] as string[],
     courtesyReschedules: 1,
@@ -38,7 +38,7 @@ export const OPERATIONAL_PRACTICES = {
   toteIdentification: 'planned',
   numberedTamperEvidentSeal: 'planned',
   handoffAndMovementRecords: 'planned',
-  authorizedOperatorsOnly: 'Owner only',
+  authorizedOperatorsOnly: 'Owner and trusted authorized help',
   exteriorConditionPhotos: 'planned',
   toteHandlingAndWeightLimits: 'planned',
   securedTransport: 'planned',
@@ -46,7 +46,7 @@ export const OPERATIONAL_PRACTICES = {
   offFloorStorage: 'Shelves, not floors',
   storageAreaInspections: 'planned',
   professionalPestControl: 'Provided by the storage facility',
-  ownerIntroduction: 'Owner-operated by Blake Thompson. Only Blake handles and accesses stored belongings.',
+  ownerIntroduction: 'Sole-proprietor, owner-operated service by Blake Thompson. Work directly with the person keeping your things.',
   directContact: 'blake@totekeeper.com · 262-880-4570',
 } as const
 
@@ -55,7 +55,7 @@ export const SERVICE_CONFIG = {
   state: 'Texas',
   currency: 'USD',
   annualVisitsIncluded: { collection: 1, returnDelivery: 1 },
-  maxCombinedToteContentsValue: 200,
+  proposedToteLiabilityLimit: 250,
   maxPackedToteWeightPounds: 50,
   toteTerms: {
     monthlySetupCharge: null,
@@ -131,7 +131,10 @@ export function creditsForToteMix(largeCount: number, xlCount: number) {
   return largeCount * SERVICE_CONFIG.toteSizes.large.credits + xlCount * SERVICE_CONFIG.toteSizes.xl.credits
 }
 
-export const TOTE_CONTENTS_ACKNOWLEDGMENT = `I confirm that this tote’s contents have a combined value of no more than $${SERVICE_CONFIG.maxCombinedToteContentsValue}, are clean and dry, and comply with the packing guidelines. It contains no prohibited valuables, irreplaceable items, food, perishables, firearms, ammunition, fireworks, fuel, hazardous materials, or unapproved batteries.`
+export const TOTE_LIABILITY_DISCLOSURE = 'Store everyday belongings, even if their combined value exceeds $250. Our liability for loss or damage is limited to actual contents value, up to $250 per tote, subject to the storage agreement. Value above that limit is at your risk.'
+export const TOTE_LIABILITY_ACKNOWLEDGMENT = 'I understand that the stated liability limit is $250 per tote, subject to the storage agreement and applicable law. Belongings worth more may be stored, but value above that limit is at my risk.'
+export const BULKY_LIABILITY_NOTICE = 'The liability limit for separately registered bulky items has not been finalized and requires an owner decision. The tote limit does not automatically apply.'
+export const TOTE_CONTENTS_ACKNOWLEDGMENT = 'I confirm that these belongings are clean and dry and comply with the packing guidelines. This tote contains no prohibited valuables, irreplaceable items, food, perishables, firearms, ammunition, fireworks, fuel, hazardous materials, or unapproved batteries.'
 
 export const formatUsd = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: SERVICE_CONFIG.currency, maximumFractionDigits: 0 }).format(amount)
 export const formatMonthlyEquivalent = (annualPrice: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: SERVICE_CONFIG.currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(annualPrice / 12)

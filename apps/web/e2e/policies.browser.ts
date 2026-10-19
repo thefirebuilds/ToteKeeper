@@ -1,0 +1,42 @@
+import { expect, test } from '@playwright/test'
+
+test('footer navigates all three policy drafts, with working section links and mobile layout', async ({ page }) => {
+  await page.route('**/api/inquiries/csrf/', route => route.fulfill({ json: { csrfToken: 'test-csrf' } }))
+  await page.goto('/')
+  const links = page.getByRole('navigation', { name: 'Policy drafts' })
+  await expect(links.getByRole('link')).toHaveCount(3)
+  await links.getByRole('link', { name: 'Storage Agreement / Terms of Service (draft)', exact: true }).click()
+  for (const [slug, title] of [['storage-agreement', 'Storage Agreement / Terms of Service'], ['packing', 'Packing and Prohibited Items'], ['privacy', 'Privacy Notice']]) {
+    if (slug !== 'storage-agreement') await page.locator('footer').getByRole('link', { name: `${title} (draft)`, exact: true }).click()
+    await expect(page).toHaveURL(new RegExp(`/policies/${slug}$`))
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(title)
+    await expect(page.getByRole('heading', { level: 1 })).toBeFocused()
+    await expect(page.locator('.policy-draft-banner')).toContainText('DRAFT — NOT APPROVED OR EFFECTIVE')
+    await expect(page.locator('.policy-version')).toContainText('draft-2026-10-18-v2')
+    await expect(page.locator('main input[type="checkbox"]')).toHaveCount(0)
+    const brokenAnchors = await page.locator('a[href^="#"]').evaluateAll(anchors => anchors.map(a => a.getAttribute('href')!).filter(href => !document.getElementById(href.slice(1))))
+    expect(brokenAnchors).toEqual([])
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  }
+})
+
+test('agreement discloses the current offer and flags unresolved terms rather than enabling enrollment', async ({ page }, testInfo) => {
+  await page.goto('/policies/storage-agreement')
+  const agreement = page.getByRole('article')
+  await expect(agreement).toContainText('Small: $125/year, 2 storage credits')
+  await expect(agreement).toContainText('Medium: $225/year, 4 storage credits')
+  await expect(agreement).toContainText('Big: $399/year, 10 storage credits')
+  await expect(agreement).toContainText('$50 for both legs together')
+  await expect(agreement).toContainText('actual compensable loss, up to $250 per physical tote')
+  await expect(agreement).toContainText('OWNER / LEGAL REVIEW REQUIRED')
+  await expect(page.locator('#cancellation')).toContainText('Stopping a future renewal')
+  await expect(agreement).toContainText('weight limit')
+  await expect(page.getByRole('button', { name: /accept|pay|checkout/i })).toHaveCount(0)
+  await page.goto('/policies/privacy')
+  await expect(page.getByRole('article')).toContainText('Google Fonts')
+  await expect(page.getByRole('article')).toContainText('Gmail API over HTTPS')
+  await expect(page.getByRole('article')).toContainText('No approved retention schedule')
+  await page.reload()
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Privacy Notice')
+  await page.screenshot({ path: testInfo.outputPath('policy.png') })
+})

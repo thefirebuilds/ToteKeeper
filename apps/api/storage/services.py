@@ -3,6 +3,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.utils import timezone
 from .models import Activity, Customer, RequestItem, ServiceRequest, Tote, ToteHistory
+from portal.scheduling import requested_date_is_available
 
 
 def audit(actor, record, action, details=None):
@@ -47,8 +48,8 @@ def create_request(actor, customer_id, tote_ids, kind, preferred_date, preferred
         raise ValidationError('This account is not active. Please contact the operator.')
     if kind not in ['collection', 'return']:
         raise ValidationError('Choose collection or return delivery.')
-    if preferred_date < timezone.localdate():
-        raise ValidationError('Preferred date cannot be in the past.')
+    if not requested_date_is_available(preferred_date):
+        raise ValidationError('Request pickup or delivery at least 72 hours ahead. Choose a later preferred date; the appointment requires confirmation.')
     ids = set(tote_ids)
     totes = list(Tote.objects.select_for_update().filter(pk__in=ids).order_by('pk'))
     if not ids or len(totes) != len(ids) or any(t.customer_id != customer.pk for t in totes):

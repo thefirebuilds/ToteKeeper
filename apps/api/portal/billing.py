@@ -10,6 +10,7 @@ from django.utils import timezone
 from .audit import record
 from .models import Account, Acceptance, Checkout, Contract, Delivery, Invoice, NotificationJob, Offering, Policy, ServiceArea, SupportRequest, WebhookEvent
 from .operations import issue_credits, owned, reserve, settle
+from .liability import ACKNOWLEDGMENT
 
 stripe.default_http_client = stripe.RequestsClient(timeout=10)
 stripe.max_network_retries = 1
@@ -44,7 +45,11 @@ def reserved_contracts(offering):
 
 
 @transaction.atomic
-def enroll(actor, account_id, offering_id, policy_id):
+def enroll(actor, account_id, offering_id, policy_id, liability_acknowledged=False):
+    if not settings.STORAGE_AGREEMENT_FINALIZED:
+        raise ValidationError('The storage agreement is still a draft. Enrollment is unavailable.')
+    if liability_acknowledged is not True:
+        raise ValidationError('Review and acknowledge the per-tote liability limit before accepting the agreement.')
     account = Account.objects.select_for_update().select_related('customer').get(pk=account_id)
     owned(actor, account)
     if not account.customer.name or not account.customer.service_address or not account.customer.phone:
@@ -57,10 +62,11 @@ def enroll(actor, account_id, offering_id, policy_id):
     policy = Policy.objects.filter(active=True, published_at__lte=timezone.now()).order_by('-published_at', '-pk').first()
     if not policy or policy.pk != policy_id:
         raise ValidationError('The policy changed. Please review the current version.')
+    accepted_terms = policy.terms + '\n\nSeparate liability acknowledgment:\n' + ACKNOWLEDGMENT
     current = Contract.objects.filter(account=account).first()
     if current:
         if current.offering_id == offering.pk and current.status == 'pending':
-            acceptance, created = Acceptance.objects.get_or_create(account=account, policy=policy, defaults={'terms_snapshot': policy.terms, 'cancellation_snapshot': policy.cancellation})
+            acceptance, created = Acceptance.objects.get_or_create(account=account, policy=policy, terms_snapshot=accepted_terms, defaults={'cancellation_snapshot': policy.cancellation})
             if created:
                 record(actor, acceptance, 'Updated policies accepted before checkout', account=account, after={'policy_version': policy.version})
             return current
@@ -71,7 +77,7 @@ def enroll(actor, account_id, offering_id, policy_id):
     if not offering.stripe_price_id or offering.tax_mode == 'unreviewed':
         raise ValidationError('Payment pricing or tax review is not configured for this offering.')
     contract = Contract.objects.create(account=account, offering=offering, terms=snapshot(offering))
-    Acceptance.objects.create(account=account, policy=policy, terms_snapshot=policy.terms, cancellation_snapshot=policy.cancellation)
+    Acceptance.objects.create(account=account, policy=policy, terms_snapshot=accepted_terms, cancellation_snapshot=policy.cancellation)
     account.enrollment_status = 'checkout'
     account.save(update_fields=['enrollment_status'])
     record(actor, contract, 'Offering and policies accepted', account=account, after={'offering_id': offering.pk, 'policy_version': policy.version})
@@ -100,11 +106,15 @@ def validate_price(terms, delivery=False):
 
 @transaction.atomic
 def checkout(actor, account_id, delivery_id=None):
+    if not delivery_id and not settings.STORAGE_AGREEMENT_FINALIZED:
+        raise ValidationError('The storage agreement is still a draft. New subscription checkout is unavailable.')
     account = Account.objects.select_for_update().select_related('customer').get(pk=account_id)
     owned(actor, account)
     if account.customer.status != 'active':
         raise ValidationError('New checkout is unavailable while this account is suspended. Billing management and cancellation remain available.')
     contract = account.contract
+    if not delivery_id and not Acceptance.objects.filter(account=account, terms_snapshot__contains=ACKNOWLEDGMENT).exists():
+        raise ValidationError('Review and accept the agreement with the separate liability acknowledgment before checkout.')
     delivery = None
     if delivery_id:
         delivery = Delivery.objects.select_for_update().get(pk=delivery_id, account=account)

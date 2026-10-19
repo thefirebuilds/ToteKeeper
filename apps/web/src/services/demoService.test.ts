@@ -26,18 +26,18 @@ describe('demo request rules', () => {
 
   it('creates a request awaiting confirmation', async () => {
     const service = createMockToteKeeperService()
-    const request = await service.createRequest({ kind: 'Collection', toteIds: ['MTK-1043'], preferredDate: '2026-11-15', preferredWindow: 'Weekend evening, 4–7 pm', address: '142 Cedar Hollow Dr, Kyle, TX 78640', instructions: '', toteAcknowledgements: [{ toteId: 'MTK-1043', contentsDescription: 'Halloween decorations', combinedContentsValue: 200, acknowledged: true }] })
+    const request = await service.createRequest({ kind: 'Collection', toteIds: ['MTK-1043'], preferredDate: '2026-11-15', preferredWindow: 'Weekend evening, 4–7 pm', address: '142 Cedar Hollow Dr, Kyle, TX 78640', instructions: '', toteAcknowledgements: [{ toteId: 'MTK-1043', contentsDescription: 'Halloween decorations', combinedContentsValue: 750, acknowledged: true }] })
     expect(request.status).toBe('Awaiting confirmation')
     const updated = await service.getDemoData()
     expect(updated.requests[0].id).toBe(request.id)
-    expect(updated.totes.find((tote) => tote.id === 'MTK-1043')).toMatchObject({ description: 'Halloween decorations', combinedContentsValue: 200, contentsAcknowledged: true })
+    expect(updated.totes.find((tote) => tote.id === 'MTK-1043')).toMatchObject({ description: 'Halloween decorations', combinedContentsValue: 750, contentsAcknowledged: true })
   })
 
-  it('blocks collection unless every selected tote is acknowledged within the combined contents value cap', async () => {
+  it('requires packing acknowledgment and valid values without a liability-based eligibility cap', async () => {
     const service = createMockToteKeeperService()
     const request = { kind: 'Collection' as const, toteIds: ['MTK-1043'], preferredDate: '2026-11-15', preferredWindow: 'Weekend evening, 4–7 pm', address: '142 Cedar Hollow Dr, Kyle, TX 78640', instructions: '' }
     await expect(service.createRequest(request)).rejects.toThrow('Confirm the packing rules')
-    await expect(service.createRequest({ ...request, toteAcknowledgements: [{ toteId: 'MTK-1043', contentsDescription: 'Decorations', combinedContentsValue: 200.01, acknowledged: true }] })).rejects.toThrow('no more than $200')
+    await expect(service.createRequest({ ...request, toteAcknowledgements: [{ toteId: 'MTK-1043', contentsDescription: 'Decorations', combinedContentsValue: -1, acknowledged: true }] })).rejects.toThrow('valid nonnegative')
     await expect(service.createRequest({ ...request, toteAcknowledgements: [{ toteId: 'MTK-1043', contentsDescription: 'Decorations', combinedContentsValue: 200, acknowledged: false }] })).rejects.toThrow('Confirm the packing rules')
   })
 

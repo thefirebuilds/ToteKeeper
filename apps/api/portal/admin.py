@@ -67,3 +67,8 @@ class SafeUserAdmin(UserAdmin):
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
         record(request.user, obj, 'User account updated' if change else 'User account provisioned', after={'active': obj.is_active})
+
+@admin.register(models.Inquiry)
+class InquiryAdmin(ReadOnlyAdmin):
+    list_display = ['reference', 'created_at', 'plan', 'delivery_status']
+    list_filter = ['delivery_status', 'plan']

@@ -65,7 +65,8 @@ describe('package policies', () => {
     expect(quote.annualTotal).toBe(0)
     expect(quote.reviewReasons.join(' ')).toMatch(/setup charge/)
     expect(quote.reviewReasons.join(' ')).toMatch(/custom quote/)
-    expect(() => quoteOrder([], [{ type: 'Snowboard bag', dimensions: [50, 10, 6], value: 201, useBonus: false }], 'A')).toThrow('$200')
+    expect(() => quoteOrder([], [{ type: 'Snowboard bag', dimensions: [50, 10, 6], value: 750, useBonus: false }], 'A')).not.toThrow()
+    expect(() => quoteOrder([], [{ type: 'Snowboard bag', dimensions: [50, 10, 6], value: -1, useBonus: false }], 'A')).toThrow('nonnegative')
   })
   it('stops renewal and grants a free final return after the ordinary return is exhausted', () => {
     const pkg = make()
@@ -89,7 +90,9 @@ describe('package policies', () => {
   it('enforces notice, available windows, and Chicago daylight-saving boundaries', () => {
     expect(chicagoMidnight('2026-07-01').toISOString()).toBe('2026-07-01T05:00:00.000Z')
     expect(chicagoMidnight('2026-12-01').toISOString()).toBe('2026-12-01T06:00:00.000Z')
-    expect(() => validateAppointment('2026-07-02', 'Weekday evening, 4–7 pm', new Date('2026-07-01T00:00:00Z'))).toThrow('48 hours')
+    expect(() => validateAppointment('2026-07-02', 'Weekday evening, 4–7 pm', new Date('2026-07-01T00:00:00Z'))).toThrow('72 hours')
+    expect(() => validateAppointment('2026-07-03', 'Weekday evening, 4–7 pm', new Date('2026-07-01T05:00:00Z'))).toThrow('72 hours')
+    expect(() => validateAppointment('2026-07-04', 'Weekday evening, 4–7 pm', new Date('2026-07-01T05:00:00Z'))).not.toThrow()
     expect(() => validateAppointment('2026-07-04', 'Invented window', new Date('2026-07-01T00:00:00Z'))).toThrow('available')
     expect(missedVisit(0).charge).toBe(0)
     expect(missedVisit(1).charge).toBeNull()

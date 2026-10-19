@@ -92,3 +92,5 @@ No connection to this server, infrastructure provisioning, DNS changes, secret c
 ## Validation while preparing this workflow
 
 YAML parsing and Bash syntax checks passed locally. Six tests passed using mocked Docker/network commands: successful release ordering and failures in preflight, backup, migration, public health and API routing. These tests do not exercise real containers. Docker is unavailable in the local workspace, so actual Compose/Caddy validation runs in the new Actions configuration job before publishing. SSH connectivity, host identity, server readiness, DNS, certificates and provider credentials remain unverified.
+
+Public inquiry intake: [configuration, migration, delivery and privacy notes](INQUIRIES.md). Set a monitored INQUIRY_TO_EMAIL and apply the additive receipt migration before enabling the form. Gmail credentials remain server-side.

@@ -30,7 +30,7 @@ export class PurchaseCoordinator {
     if (actor.role !== 'Customer') throw new Error('Use an authenticated customer account to create an order.')
     if (!input || typeof input.address !== 'string' || !input.address.trim() || input.address.length > 1000 || typeof input.requestKey !== 'string' || !input.requestKey || input.requestKey.length > 150 || !Array.isArray(input.packages) || !Array.isArray(input.bulky) || input.packages.length > 20 || input.bulky.length > 20) throw new Error('Invalid order request.')
     quoteOrder(input.packages, input.bulky, input.address)
-    const fingerprint = createHash('sha256').update(JSON.stringify({ packages: input.packages, bulky: input.bulky, address: input.address, agreementVersion: input.agreementVersion, accepted: input.accepted })).digest('hex')
+    const fingerprint = createHash('sha256').update(JSON.stringify({ packages: input.packages, bulky: input.bulky, address: input.address, agreementVersion: input.agreementVersion, accepted: input.accepted, liabilityAcknowledged: input.liabilityAcknowledged === true })).digest('hex')
     return this.repo.transaction(s => {
       const previous = Object.values(s.orders).find(order => order.customerId === actor.id && order.requestKey === input.requestKey)
       if (previous) { if (previous.fingerprint !== fingerprint) throw new Error('Retry key already belongs to another order.'); return previous }
@@ -53,7 +53,7 @@ export class PurchaseCoordinator {
           unit.lines.push({ id: `${item.id}:storage`, recordId: item.id, lookupKey: billable ? unit.kind === 'Package' ? 'totekeeper_bulky_addon_annual_usd_v1' : 'totekeeper_bulky_standalone_annual_usd_v1' : null, amountCents: billable ? (unit.kind === 'Package' ? POLICY.bulky.addOnAnnualPrice : POLICY.bulky.standaloneAnnualPrice) * 100 : 0 })
         }
       }
-      const agreement = input.accepted && this.readiness.sandboxAgreementEnabled && this.readiness.agreementContentHash && input.agreementVersion === this.readiness.agreementVersion ? { version: input.agreementVersion, acceptedAt: now(), contentHash: this.readiness.agreementContentHash } : null
+      const agreement = input.accepted && input.liabilityAcknowledged === true && this.readiness.sandboxAgreementEnabled && this.readiness.agreementContentHash && input.agreementVersion === this.readiness.agreementVersion ? { version: input.agreementVersion, acceptedAt: now(), contentHash: this.readiness.agreementContentHash, liabilityAcknowledged: true } : null
       const order: PaymentOrder = { id: randomUUID(), customerId: actor.id, requestKey: input.requestKey, fingerprint, address: input.address.trim(), createdAt: now(), agreement, addressApproved: false, itemsApproved: false, units }
       s.orders[order.id] = order; audit(s, 'Sandbox order saved for review', order.id); return order
     })
@@ -67,20 +67,21 @@ export class PurchaseCoordinator {
       return order
     })
   }
-  accept(actor: Actor, orderId: string, version: string) {
+  accept(actor: Actor, orderId: string, version: string, liabilityAcknowledged = false) {
+    if (liabilityAcknowledged !== true) throw new Error('Acknowledge the per-tote liability limit separately before agreement acceptance.')
     this.order(actor, orderId)
     if (!this.readiness.sandboxAgreementEnabled || !this.readiness.agreementContentHash || version !== this.readiness.agreementVersion) throw new Error('No matching approved sandbox agreement version is configured.')
     return this.repo.transaction(s => {
       const order = s.orders[orderId]
       if (order.units.some(unit => unit.sessionId)) throw new Error('Agreement is locked once Checkout starts.')
-      order.agreement = { version, acceptedAt: now(), contentHash: this.readiness.agreementContentHash! }; audit(s, 'Sandbox agreement accepted', orderId); return order
+      order.agreement = { version, acceptedAt: now(), contentHash: this.readiness.agreementContentHash!, liabilityAcknowledged: true }; audit(s, 'Sandbox agreement accepted', orderId); return order
     })
   }
   blockers(order: PaymentOrder) {
     const reasons: string[] = []
     if (!order.addressApproved || !order.reviewedBy) reasons.push('The exact address needs owner approval.')
     if (order.units.some(unit => unit.bulky.length) && !order.itemsApproved) reasons.push('Bulky items need owner handling approval.')
-    if (!order.agreement || !this.readiness.sandboxAgreementEnabled || order.agreement.version !== this.readiness.agreementVersion || order.agreement.contentHash !== this.readiness.agreementContentHash) reasons.push('Review and accept the configured sandbox agreement before checkout.')
+    if (!order.agreement || !order.agreement.liabilityAcknowledged || !this.readiness.sandboxAgreementEnabled || order.agreement.version !== this.readiness.agreementVersion || order.agreement.contentHash !== this.readiness.agreementContentHash) reasons.push('Review and accept the configured sandbox agreement before checkout.')
     if (order.units.some(unit => unit.selection?.billing === 'monthly')) reasons.push('Monthly checkout is blocked until the setup charge and refundability are finalized.')
     if (order.units.some(unit => unit.bulky.some(item => item.type === 'Other' || !standardEnvelope(item.dimensions)))) reasons.push('Custom items require a separately approved quote; instant checkout is unavailable.')
     if (!this.readiness.addOnCouplingApproved && order.units.some(unit => unit.kind === 'Package' && unit.bulky.some(item => !item.useBonus))) reasons.push('Paid bulky add-on renewal/cancellation coupling requires owner approval.')

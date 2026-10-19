@@ -1,7 +1,7 @@
 import type { BulkySelection, PackageRecord, PackageSelection } from '../src/domain/operations.ts'
 
 export interface Actor { id: string; role: 'Customer' | 'Owner' }
-export interface OrderInput { packages: PackageSelection[]; bulky: BulkySelection[]; address: string; agreementVersion: string; accepted: boolean; requestKey: string }
+export interface OrderInput { packages: PackageSelection[]; bulky: BulkySelection[]; address: string; agreementVersion: string; accepted: boolean; liabilityAcknowledged?: boolean; requestKey: string }
 export type PaymentState = 'Not started' | 'Checkout open' | 'Processing' | 'Paid' | 'Failed' | 'Expired'
 export interface PurchaseUnit {
   id: string; kind: 'Package' | 'Standalone bulky' | 'Extra cycle'; packageId: string
@@ -13,7 +13,7 @@ export interface PurchaseUnit {
 }
 export interface PaymentOrder {
   id: string; customerId: string; requestKey: string; fingerprint: string; address: string; createdAt: string
-  agreement: { version: string; acceptedAt: string; contentHash: string } | null; reviewedBy?: string; reviewedAt?: string
+  agreement: { version: string; acceptedAt: string; contentHash: string; liabilityAcknowledged?: boolean } | null; reviewedBy?: string; reviewedAt?: string
   addressApproved: boolean; itemsApproved: boolean; units: PurchaseUnit[]; extraCycleAuthorized?: boolean
 }
 export interface BillingPackage {

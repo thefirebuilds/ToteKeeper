@@ -16,7 +16,7 @@ const repos: SqlitePaymentRepository[] = []
 afterEach(() => { for (const repo of repos.splice(0)) repo.close() })
 const customer: Actor = { id: 'C1', role: 'Customer' }; const owner: Actor = { id: 'OWNER', role: 'Owner' }
 const ready = (): Readiness => ({ agreementVersion: 'sandbox-terms-test-v1', agreementContentHash: 'sha256-of-test-fixture-document', sandboxAgreementEnabled: true, tax: { mode: 'disabled', approved: true, originConfigured: false, registrationsConfigured: false }, addOnCouplingApproved: true })
-const input = (plan: 'small' | 'medium' | 'big' = 'small'): OrderInput => ({ packages: [{ planId: plan, billing: 'annual', large: 2, xl: 0 }], bulky: [], address: '123 Fictional Lane, Kyle', agreementVersion: 'sandbox-terms-test-v1', accepted: true, requestKey: crypto.randomUUID() })
+const input = (plan: 'small' | 'medium' | 'big' = 'small'): OrderInput => ({ packages: [{ planId: plan, billing: 'annual', large: 2, xl: 0 }], bulky: [], address: '123 Fictional Lane, Kyle', agreementVersion: 'sandbox-terms-test-v1', accepted: true, liabilityAcknowledged: true, requestKey: crypto.randomUUID() })
 
 function fixture(path = ':memory:') {
   const repo = new SqlitePaymentRepository(path); repos.push(repo)
@@ -75,6 +75,15 @@ function fixture(path = ':memory:') {
 }
 
 describe('Stripe sandbox purchase coordinator', () => {
+  it('requires separate liability acknowledgment before recording agreement or opening checkout', () => {
+    const f = fixture()
+    const order = f.coordinator.saveOrder(customer, { ...input(), liabilityAcknowledged: false })
+    expect(order.agreement).toBeNull()
+    expect(() => f.coordinator.accept(customer, order.id, ready().agreementVersion!)).toThrow('separately')
+    expect(f.coordinator.blockers(order).join(' ')).toContain('agreement before checkout')
+    const accepted = f.coordinator.accept(customer, order.id, ready().agreementVersion!, true)
+    expect(accepted.agreement?.liabilityAcknowledged).toBe(true)
+  })
   it('uses new annual Prices without repricing persisted v1 package purchases', () => {
     expect(packagePriceKey('medium', 'annual')).toBe('totekeeper_medium_annual_usd_v2')
     expect(packagePriceKey('big', 'annual')).toBe('totekeeper_big_annual_usd_v2')

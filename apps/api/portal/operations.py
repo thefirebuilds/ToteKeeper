@@ -7,6 +7,7 @@ from storage.models import Tote, ToteHistory
 from .audit import record
 from .models import Account, CreditGrant, Delivery, DeliveryItem, LedgerEntry, NotificationJob, ServiceWindow
 from .permissions import operational_access
+from .scheduling import notice_hours
 
 ACTIVE = ['requested', 'awaiting_payment', 'confirmed', 'in_progress']
 
@@ -87,7 +88,7 @@ def book(actor, account_id, kind, window_id, item_ids, address, postal_code, ins
     window = ServiceWindow.objects.select_for_update().select_related('area').get(pk=window_id)
     if not window.area.active or window.area.postal_code != postal_code.strip().upper():
         raise ValidationError('That address is outside this service window’s approved area.')
-    if window.blackout or window.starts_at < timezone.now() + timedelta(hours=window.lead_hours):
+    if window.blackout or window.starts_at < timezone.now() + timedelta(hours=notice_hours(window)):
         raise ValidationError('This service window is unavailable or inside its lead time.')
     if Delivery.objects.filter(window=window, status__in=ACTIVE).count() >= window.capacity:
         raise ValidationError('This service window is full. Choose another window.')
@@ -179,7 +180,7 @@ def reschedule(actor, delivery_id, window_id):
     if delivery.status not in ['requested', 'confirmed'] or timezone.now() >= delivery.window.starts_at - timedelta(hours=delivery.window.cancellation_hours):
         raise ValidationError('This request cannot be rescheduled online. Contact ToteKeeper.')
     window = ServiceWindow.objects.select_for_update().select_related('area').get(pk=window_id)
-    if not window.area.active or window.area.postal_code != delivery.postal_code or window.blackout or window.starts_at < timezone.now() + timedelta(hours=window.lead_hours):
+    if not window.area.active or window.area.postal_code != delivery.postal_code or window.blackout or window.starts_at < timezone.now() + timedelta(hours=notice_hours(window)):
         raise ValidationError('The selected service window is unavailable.')
     if Delivery.objects.filter(window=window, status__in=ACTIVE).exclude(pk=delivery.pk).count() >= window.capacity:
         raise ValidationError('The selected service window is full.')

@@ -1,6 +1,6 @@
 # My Tote Keeper
 
-React/TypeScript/Vite storefront and **fictional** Octagon customer-experience preview. Octagon is a standalone backend under development. This repository has no production authentication, database, uploads, payment processing, messaging delivery, or appointment confirmation endpoint. It is not ready to accept real online enrollments.
+React/TypeScript/Vite storefront with a public storage inquiry form backed by the existing Django application in `../api`. Public CTAs and legacy `/enroll` links enter this manual inquiry flow; they do not create accounts, subscriptions, payments or appointments. The separate `/portal` customer demo remains explicitly fictional and is not linked from the public conversion journey. See [inquiry setup and verification](../../docs/INQUIRIES.md) before enabling real submissions.
 
 A separate, opt-in **local Stripe sandbox integration** now preserves the existing enrollment/cart and uses hosted Checkout, recurring Billing, a restricted customer portal, signed webhooks and durable SQLite test records. It rejects live keys and does not deploy with the static storefront. Setup, object mapping, tests and production blockers: [Stripe sandbox guide](../../docs/STRIPE.md).
 
@@ -13,9 +13,9 @@ The optional sandbox server requires **Node 22.13+ or Node 24** for built-in SQL
 ## Implemented
 
 - Existing blue Large/XL images, responsive illustration layouts, blue branding and warm backgrounds are preserved.
-- Owner Blake Thompson: `blake@totekeeper.com`, `262-880-4570`. Only Blake handles/accesses belongings. No owner photo or facility address is published.
+- Sole-proprietor owner Blake Thompson: `blake@totekeeper.com`, `262-880-4570`, with trusted authorized help when needed. No owner photo or facility address is published. Requested pickup/delivery needs at least 72 hours' notice and operator confirmation; evening/weekend availability is subject to scheduling.
 - Buda, Kyle, South Austin; exact-address review before payment. No fabricated ZIP approvals. Storage target 55–80°F, dry shelves, facility-provided pest control, existing packing restrictions.
-- Annual Small $125/2 credits, Medium $299/4, Big $599/10. Actual monthly rates $15/$50/$100 are distinguished from annual monthly equivalents. Monthly enrollment remains disabled pending the setup charge/refundability decision.
+- Annual Small $125/2 credits, Medium $225/4, Big $399/10. Actual monthly rates $15/$50/$100 are distinguished from annual monthly equivalents. Monthly enrollment remains disabled pending the setup charge/refundability decision.
 - `/enroll`: independent packages and tote mixes; standard bulky items at $75/year with tote appointments or $125/year standalone; single annual Big bonus; custom items unpriced and in review. Recurring-price summary, separate fictional SMS consents, versioned policy preview and idempotent demo enrollment. No real checkout or approved legal agreement acceptance.
 - `/portal`: fictional inventory, IDs/seals/history, packing acknowledgments, package-scoped requests, empty handling, two-leg $50 extra cycles, concern previews, persistence/reset.
 - `/portal/plan`: independent package allowances/service years, renewal state, bonus and bulky records, cancellation stages, free final return and fictional audit. Operator completion/progression controls are labeled simulations. Current committed charges are retained; no cancellation penalty or lost-tote fee is invented.

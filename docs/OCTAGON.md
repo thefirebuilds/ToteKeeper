@@ -11,7 +11,7 @@ The [separate local Stripe sandbox](STRIPE.md) now implements signed raw-body ve
 | Customer/address | Authenticated customer; exact address; geography decision, reviewer, timestamp, boundary version. ZIPs cannot grant eligibility. |
 | Package | Customer/provider IDs; independently priced subscription, cadence, credits, service year, reset qualification, renewal state/date, payment state. Multiple subscriptions per customer. |
 | Tote | Package/customer ownership, Large/XL, ID, contents/value acknowledgments, seals, conditions, private photos, empty custody, movement audit. |
-| Bulky item | Package or standalone, item type/dimensions/value ≤$200, approved handling, price/quote, single annual Big bonus allocation, standalone collection/return. |
+| Bulky item | Package or standalone, item type/dimensions/declared value with no accepted-value ceiling; liability limit requires owner decision; approved handling, price/quote, single annual Big bonus allocation, standalone collection/return. |
 | Cycle/leg | Included, purchased $50 or cancellation cycle; entitlement provenance, return/dropoff and subsequent pickup IDs; requested/confirmed/completed status. |
 | Agreement | Approved version, content reference/hash, explicit acceptance, timestamp, authenticated customer. Demo preview acceptance is not legal acceptance. |
 | Appointment/handoff | Requested vs confirmed time; availability/blackouts; owner action; agreed unattended location, customer authorization, separate owner agreement; timestamp/photo/notification evidence where connected. |

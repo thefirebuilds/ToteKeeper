@@ -42,3 +42,12 @@
 
 /* Capacity-first tote cards and annual package comparison. */
 .tote-size-card .tote-capacity{font:24px var(--serif);color:#244681;margin:8px 0 12px}.plan-unit-price{font-size:12px;color:#244681;margin:12px 0 5px}.tote-product-specs{margin-top:18px}.tote-product-description{max-width:32ch}
+
+/* Inquiry flow, using the existing cream-and-blue form. */
+#interest{scroll-margin-top:110px}.header-inquiry{border:0}.help-decide{margin-top:16px}.interest-form fieldset{border:0;padding:0;margin:0;min-width:0;display:grid;gap:17px}.interest-form label{font-size:12px}.interest-form input,.interest-form select,.interest-form textarea{min-height:44px;font-size:16px}.interest-form button{min-height:44px}.interest-form [aria-invalid=true]{border-color:#9a3427;outline-color:#9a3427}.interest-form :focus-visible,.header-inquiry:focus-visible,.help-decide:focus-visible{outline:3px solid #3e63b8;outline-offset:3px}.inquiry-error{border-left:3px solid #9a3427;background:#f6e8df;padding:12px}.inquiry-error:focus,.inquiry-confirmation:focus{outline:3px solid #3e63b8;outline-offset:3px}.inquiry-error p,.inquiry-contact,.inquiry-confirmation p{font-size:13px;line-height:1.7}.inquiry-field-error{font-size:12px;color:#8a2b20;font-weight:400}.inquiry-context{font-size:12px;font-weight:700;color:#244681;margin:0}.inquiry-reference{overflow-wrap:anywhere}.inquiry-confirmation h3{font:28px var(--serif);color:#244681;margin:0}.inquiry-honeypot{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.interest-form .form-disclaimer{font-size:12px;line-height:1.65}.interest-form a{text-decoration:underline;text-underline-offset:3px}.interest-form button:disabled{opacity:.65;cursor:wait}.interest-form fieldset:disabled{opacity:.8}
+@media(max-width:640px){.interest-form{padding:22px}.interest-form .form-row{grid-template-columns:1fr}.header-inquiry{font-size:12px}.inquiry-confirmation h3{font-size:25px}}
+
+/* Keep form focus and mobile visual viewport synchronized during navigation. */
+html:focus-within{scroll-behavior:auto}
+
+.interest-form input,.interest-form select,.interest-form textarea{width:100%;border:1px solid #d7d5ca;background:#fffefa;border-radius:1px;padding:11px 12px;color:#243652;font-family:inherit;font-weight:400;line-height:1.4}.interest-form [aria-invalid=true]{border-color:#9a3427}

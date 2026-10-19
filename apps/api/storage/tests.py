@@ -9,6 +9,21 @@ from .models import Customer, Plan, Subscription, Tote
 
 
 class LegacyDataTests(TestCase):
+    def test_new_legacy_requests_need_72_hour_notice(self):
+        from django.core.exceptions import ValidationError
+        from unittest.mock import patch
+        from .services import create_request
+        from portal.scheduling import earliest_requested_date
+        user = get_user_model().objects.create_user('notice-test')
+        customer = Customer.objects.create(user=user, name='TEST', email='test@example.invalid', service_address='TEST')
+        tote = Tote.objects.create(customer=customer, status='with_customer', label='TEST-NOTICE')
+        now = timezone.now()
+        with patch('django.utils.timezone.now', return_value=now):
+            with self.assertRaisesMessage(ValidationError, '72 hours'):
+                create_request(user, customer.pk, [tote.pk], 'collection', timezone.localdate()+timedelta(days=2), 'Evening')
+            request = create_request(user, customer.pk, [tote.pk], 'collection', earliest_requested_date(), 'Evening')
+            self.assertEqual(request.status, 'requested')
+
     def test_agreed_manual_price_is_preserved(self):
         user = get_user_model().objects.create_user('legacy')
         customer = Customer.objects.create(user=user, name='Example', email='example@example.invalid', service_address='Example')

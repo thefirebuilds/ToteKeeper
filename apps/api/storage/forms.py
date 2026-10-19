@@ -1,6 +1,6 @@
 from django import forms
-from django.utils import timezone
 from .models import Customer, ServiceRequest, Tote
+from portal.scheduling import earliest_requested_date
 
 
 class ToteForm(forms.ModelForm):
@@ -25,7 +25,8 @@ class RequestForm(forms.Form):
     def __init__(self, *args, customer, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['totes'].queryset = customer.totes.filter(status__in=[Tote.Status.WITH_CUSTOMER, Tote.Status.STORAGE]).exclude(request_items__request__status__in=['requested', 'confirmed'])
-        self.fields['preferred_date'].widget.attrs['min'] = timezone.localdate().isoformat()
+        self.fields['preferred_date'].widget.attrs['min'] = earliest_requested_date().isoformat()
+        self.fields['preferred_date'].help_text = 'Request pickup or delivery at least 72 hours ahead. We will confirm your appointment. Dates alone do not reserve a time.'
 
 
 class AppointmentForm(forms.Form):

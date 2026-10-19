@@ -72,7 +72,7 @@ class FixtureMixin:
         self.client.force_login(self.alice, backend='django.contrib.auth.backends.ModelBackend')
 
     def activate(self, credits=2):
-        contract = billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk)
+        contract = billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True)
         contract.status = 'active'
         contract.payment_status = 'paid'
         contract.stripe_subscription_id = 'sub_test'
@@ -93,7 +93,7 @@ class FixtureMixin:
         session.save()
 
 
-@override_settings(AXES_ENABLED=False, ACCOUNT_RATE_LIMITS={}, EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend', STORAGES={'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'}, 'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'}})
+@override_settings(STORAGE_AGREEMENT_FINALIZED=True, AXES_ENABLED=False, ACCOUNT_RATE_LIMITS={}, EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend', STORAGES={'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'}, 'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'}})
 class PortalTests(FixtureMixin, TestCase):
     def test_active_dashboard_and_steward_inventory_boundary(self):
         self.activate()
@@ -155,11 +155,11 @@ class PortalTests(FixtureMixin, TestCase):
             operations.transition(self.bob, delivery.pk, 'canceled')
 
     def test_enrollment_preserves_terms_and_does_not_activate(self):
-        contract = billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk)
+        contract = billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True)
         self.assertEqual(contract.status, 'pending')
         self.assertEqual(contract.payment_status, 'unpaid')
         self.assertEqual(Acceptance.objects.filter(account=self.account).count(), 1)
-        billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk)
+        billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True)
         self.assertEqual(Contract.objects.filter(account=self.account).count(), 1)
         self.offering.price_cents = 900
         self.offering.save()
@@ -168,24 +168,65 @@ class PortalTests(FixtureMixin, TestCase):
         self.client.get('/billing/?checkout=returned')
         self.assertEqual(operations.available_credits(self.account), 0)
 
+    def test_liability_acknowledgment_is_separate_and_required(self):
+        from .forms import EnrollmentForm
+        from .liability import ACKNOWLEDGMENT
+        data = {'offering': self.offering.pk, 'policy_id': self.policy.pk, 'accept': True}
+        form = EnrollmentForm(data)
+        self.assertFalse(form.is_valid())
+        self.assertIn('liability_acknowledged', form.errors)
+        with self.assertRaisesMessage(ValidationError, 'acknowledge'):
+            billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk)
+        self.assertFalse(Contract.objects.exists())
+        self.client.force_login(self.alice, backend='django.contrib.auth.backends.ModelBackend')
+        response = self.client.get('/enroll/')
+        self.assertContains(response, ACKNOWLEDGMENT)
+        self.assertNotIn('checked', response.context['form']['liability_acknowledged'].as_widget())
+        response = self.client.post('/enroll/', {**data, 'liability_acknowledged': True})
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(ACKNOWLEDGMENT, Acceptance.objects.get(account=self.account).terms_snapshot)
+
+    @override_settings(STORAGE_AGREEMENT_FINALIZED=False)
+    def test_draft_terms_cannot_be_accepted_or_used_for_checkout(self):
+        self.client.force_login(self.alice, backend='django.contrib.auth.backends.ModelBackend')
+        response = self.client.get('/enroll/')
+        self.assertContains(response, 'No agreement acceptance or payment is available while terms remain a draft.')
+        self.assertNotContains(response, 'name="accept"')
+        with self.assertRaisesMessage(ValidationError, 'still a draft'):
+            billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True)
+        with self.assertRaisesMessage(ValidationError, 'still a draft'):
+            billing.checkout(self.alice, self.account.pk)
+        self.assertFalse(Contract.objects.exists())
+
+    def test_pending_legacy_acceptance_needs_acknowledgment_without_rewriting_history(self):
+        Contract.objects.create(account=self.account, offering=self.offering, terms=billing.snapshot(self.offering))
+        old = Acceptance.objects.create(account=self.account, policy=self.policy,
+            terms_snapshot=self.policy.terms, cancellation_snapshot=self.policy.cancellation)
+        with self.assertRaisesMessage(ValidationError, 'separate liability acknowledgment'):
+            billing.checkout(self.alice, self.account.pk)
+        billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True)
+        old.refresh_from_db()
+        self.assertEqual(old.terms_snapshot, self.policy.terms)
+        self.assertEqual(Acceptance.objects.filter(account=self.account).count(), 2)
+
     def test_enrollment_rejects_policy_area_and_capacity(self):
         self.area.active = False
         self.area.save()
         with self.assertRaises(ValidationError):
-            billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk)
+            billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True)
         self.area.active = True
         self.area.save()
         self.offering.capacity = 0
         self.offering.save()
         with self.assertRaises(ValidationError):
-            billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk)
+            billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True)
         self.offering.capacity = 2
         self.offering.save()
         with self.assertRaises(ValidationError):
-            billing.enroll(self.alice, self.account.pk, self.offering.pk, 999)
+            billing.enroll(self.alice, self.account.pk, self.offering.pk, 999, liability_acknowledged=True)
 
     def test_no_credentials_has_explicit_failure(self):
-        billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk)
+        billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True)
         with self.assertRaises(billing.ProviderUnavailable):
             billing.options()
 
@@ -246,6 +287,43 @@ class PortalTests(FixtureMixin, TestCase):
         self.window.save()
         with self.assertRaises(ValidationError):
             operations.transition(self.alice, delivery.pk, 'canceled')
+
+    def test_new_booking_enforces_72_hours_even_on_legacy_short_windows(self):
+        from .forms import available_windows
+        self.activate()
+        now = timezone.now()
+        with patch('django.utils.timezone.now', return_value=now):
+            self.window.lead_hours = 48  # Preserve a historical configured value.
+            self.window.starts_at = now + timedelta(hours=60)
+            self.window.ends_at = self.window.starts_at + timedelta(hours=2)
+            self.window.save()
+            self.assertFalse(available_windows('00000').filter(pk=self.window.pk).exists())
+            with self.assertRaisesMessage(ValidationError, 'lead time'):
+                self.book()
+            self.window.starts_at = now + timedelta(hours=72)
+            self.window.ends_at = self.window.starts_at + timedelta(hours=2)
+            self.window.save()
+            self.assertTrue(available_windows('00000').filter(pk=self.window.pk).exists())
+            delivery = self.book()
+            self.assertEqual(delivery.status, 'requested')
+            self.window.refresh_from_db()
+            self.assertEqual(self.window.lead_hours, 48)
+
+    def test_reschedule_cannot_bypass_minimum_or_blackout(self):
+        self.activate()
+        delivery = self.book()
+        now = timezone.now()
+        short = ServiceWindow.objects.create(area=self.area, starts_at=now + timedelta(hours=60),
+            ends_at=now + timedelta(hours=62), capacity=10, lead_hours=0)
+        with self.assertRaisesMessage(ValidationError, 'unavailable'):
+            operations.reschedule(self.alice, delivery.pk, short.pk)
+        short.starts_at, short.ends_at = now + timedelta(days=6), now + timedelta(days=6, hours=2)
+        short.blackout = True
+        short.save()
+        with self.assertRaisesMessage(ValidationError, 'unavailable'):
+            operations.reschedule(self.alice, delivery.pk, short.pk)
+        delivery.refresh_from_db()
+        self.assertEqual(delivery.window_id, self.window.pk)
 
     def test_exchange_and_oversized_validation(self):
         self.activate()
@@ -358,7 +436,7 @@ class PortalTests(FixtureMixin, TestCase):
         self.assertFalse(Membership.objects.filter(user=self.alice).exists())
 
 
-@override_settings(STRIPE_SECRET_KEY='sk_test_fixture', STRIPE_WEBHOOK_SECRET='whsec_fixture', AXES_ENABLED=False, STORAGES={'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'}})
+@override_settings(STORAGE_AGREEMENT_FINALIZED=True, STRIPE_SECRET_KEY='sk_test_fixture', STRIPE_WEBHOOK_SECRET='whsec_fixture', AXES_ENABLED=False, STORAGES={'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'}})
 class BillingTests(FixtureMixin, TestCase):
     def test_no_credentials_has_explicit_failure(self):
         with override_settings(STRIPE_SECRET_KEY=''), self.assertRaises(billing.ProviderUnavailable):
@@ -371,7 +449,7 @@ class BillingTests(FixtureMixin, TestCase):
         return contract
 
     def test_checkout_is_hosted_and_reused_without_duplicate_subscription(self):
-        contract = billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk)
+        contract = billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True)
         price = {'active': True, 'currency': 'usd', 'unit_amount': 100, 'recurring': {'interval': 'month', 'interval_count': 1}}
         session = StripeObject(id='cs_created', url='https://checkout.stripe.com/test', expires_at=int((timezone.now()+timedelta(hours=1)).timestamp()))
         with patch('stripe.Price.retrieve', return_value=price), patch('stripe.Customer.create', return_value=StripeObject(id='cus_test')), patch('stripe.checkout.Session.create', return_value=session) as create:
@@ -392,7 +470,7 @@ class BillingTests(FixtureMixin, TestCase):
             billing.checkout(self.alice, self.account.pk)
 
     def test_mismatched_price_cannot_charge_customer(self):
-        billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk)
+        billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True)
         with patch('stripe.Price.retrieve', return_value={'active': True, 'currency': 'usd', 'unit_amount': 900}), self.assertRaises(ValidationError):
             billing.checkout(self.alice, self.account.pk)
 
@@ -521,7 +599,7 @@ class BillingTests(FixtureMixin, TestCase):
             self.book()
 
 
-@override_settings(AXES_ENABLED=False, ACCOUNT_RATE_LIMITS={}, EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend', STORAGES={'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'}})
+@override_settings(STORAGE_AGREEMENT_FINALIZED=True, AXES_ENABLED=False, ACCOUNT_RATE_LIMITS={}, EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend', STORAGES={'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'}})
 class AuthenticationTests(TestCase):
     def setUp(self):
         cache.clear()
@@ -601,11 +679,12 @@ class ProductionSettingsTests(SimpleTestCase):
 
 
 @skipUnless(connection.vendor == 'postgresql', 'PostgreSQL row-lock test runs in CI')
+@override_settings(STORAGE_AGREEMENT_FINALIZED=True)
 class ReservationConcurrencyTests(TransactionTestCase):
     def test_same_credit_and_capacity_cannot_be_double_spent(self):
         alice, bob, steward, admin, area, offering, policy, window, item, other = fixtures()
         account = alice.customer.portal_account
-        contract = billing.enroll(alice, account.pk, offering.pk, policy.pk)
+        contract = billing.enroll(alice, account.pk, offering.pk, policy.pk, liability_acknowledged=True)
         contract.status = 'active'
         contract.payment_status = 'paid'
         contract.save()

@@ -33,3 +33,12 @@ The optional Node Stripe sandbox remains an independent opt-in development tool 
 Dedicated server publishing: [GitHub Actions setup and required configuration](docs/SERVER_DEPLOYMENT.md) for 162.243.163.103.
 
 Gmail sender setup without SMTP: [Gmail API over HTTPS](docs/GMAIL_API.md).
+
+Working public inquiries: [setup and verification](docs/INQUIRIES.md). Operator inbox configuration is required; inquiries do not create subscriptions or bookings.
+
+Customer policy drafts: `/policies/storage-agreement`, `/policies/packing`, and
+`/policies/privacy`. These are review documents, not operative agreements. See the
+[owner decisions, implementation conflicts and Texas research](docs/POLICY_OWNER_REVIEW.md)
+before publishing approved terms or enabling enrollment.
+
+Plan explanations and image-placeholder replacement: [Plans & details](docs/PLANS_DETAILS.md).

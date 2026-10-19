@@ -37,3 +37,10 @@ backups/
 
 # Downloaded Google OAuth client credentials
 client_secret*.json
+
+# Browser test artifacts (fixture inputs only)
+playwright-report/
+test-results/
+
+# Existing local OAuth client file; never include in source archives.
+/scripts/sec.json

@@ -102,11 +102,11 @@ def address_remove(request, pk):
 @login_required
 def enrollment(request):
     account = account_for(request)
-    policy = Policy.objects.filter(active=True, published_at__lte=timezone.now()).order_by('-published_at', '-pk').first()
+    policy = Policy.objects.filter(active=True, published_at__lte=timezone.now()).order_by('-published_at', '-pk').first() if settings.STORAGE_AGREEMENT_FINALIZED else None
     form = EnrollmentForm(request.POST or None, initial={'policy_id': policy.pk if policy else None})
     if request.method == 'POST' and form.is_valid():
         try:
-            billing.enroll(request.user, account.pk, form.cleaned_data['offering'].pk, form.cleaned_data['policy_id'])
+            billing.enroll(request.user, account.pk, form.cleaned_data['offering'].pk, form.cleaned_data['policy_id'], liability_acknowledged=form.cleaned_data['liability_acknowledged'])
         except ValidationError as error:
             form.add_error(None, error)
         else:

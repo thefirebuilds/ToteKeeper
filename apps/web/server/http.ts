@@ -67,7 +67,7 @@ export function createSandboxHandler(repo: PaymentRepository, coordinator: Purch
         if (!action && req.method === 'GET') return reply(200, { order: await coordinator.refreshOrder(actor, id), blockers: coordinator.blockers(coordinator.order(actor, id)) })
         if (action === 'next' && req.method === 'POST') return reply(200, await coordinator.next(actor, id))
         if (action === 'review' && req.method === 'POST') return reply(200, coordinator.review(actor, id, body.addressApproved, body.itemsApproved))
-        if (action === 'agreement' && req.method === 'POST' && body.accepted === true) return reply(200, coordinator.accept(actor, id, body.version))
+        if (action === 'agreement' && req.method === 'POST' && body.accepted === true) return reply(200, coordinator.accept(actor, id, body.version, body.liabilityAcknowledged === true))
       }
       const pkgMatch = /^\/api\/sandbox\/packages\/([a-zA-Z0-9-]+)\/(cancel|extra-cycle|final-return)$/.exec(path)
       if (pkgMatch && req.method === 'POST') {

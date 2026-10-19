@@ -125,3 +125,10 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 # Do not emit request URLs, form contents, email addresses or authentication attempts.
 LOGGING = {'version': 1, 'disable_existing_loggers': False, 'handlers': {'null': {'class': 'logging.NullHandler'}}, 'loggers': {name: {'handlers': ['null'], 'propagate': False} for name in ['django.request', 'django.server', 'django.security', 'axes', 'stripe']}}
+
+# Public inquiry delivery; intentionally unavailable until an operator inbox is configured.
+INQUIRY_TO_EMAIL = os.getenv('INQUIRY_TO_EMAIL', '')
+INQUIRY_TRUST_PROXY_HEADER = os.getenv('INQUIRY_TRUST_PROXY_HEADER', 'false').lower() == 'true'
+
+# Owner approval is required before collecting finalized agreement acceptance.
+STORAGE_AGREEMENT_FINALIZED = os.getenv('STORAGE_AGREEMENT_FINALIZED', 'false').lower() == 'true'

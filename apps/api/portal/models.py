@@ -4,6 +4,7 @@ from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
 from storage.models import Customer, Tote
+from .scheduling import MINIMUM_NOTICE_HOURS
 
 
 class Membership(models.Model):
@@ -140,7 +141,7 @@ class ServiceWindow(models.Model):
     starts_at = models.DateTimeField()
     ends_at = models.DateTimeField()
     capacity = models.PositiveIntegerField(default=1)
-    lead_hours = models.PositiveIntegerField(default=48)
+    lead_hours = models.PositiveIntegerField(default=MINIMUM_NOTICE_HOURS)
     cancellation_hours = models.PositiveIntegerField(default=24)
     blackout = models.BooleanField(default=False)
 
@@ -265,3 +266,21 @@ class NotificationJob(models.Model):
     message = models.TextField()
     sent_at = models.DateTimeField(null=True)
     attempts = models.PositiveIntegerField(default=0)
+
+class Inquiry(models.Model):
+    """Private lead and delivery receipt; independent of accounts or subscriptions."""
+    reference = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    request_key = models.UUIDField(unique=True, editable=False)
+    fingerprint = models.CharField(max_length=64, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    name = models.CharField(max_length=100)
+    email = models.EmailField()
+    zip_code = models.CharField(max_length=10)
+    plan = models.CharField(max_length=12)
+    description = models.TextField(max_length=1000)
+    phone = models.CharField(max_length=30, blank=True)
+    reply_method = models.CharField(max_length=5, default='email')
+    source = models.CharField(max_length=24)
+    context = models.CharField(max_length=20, default='general')
+    delivery_status = models.CharField(max_length=8, default='sending', choices=[('sending', 'Sending / needs review'), ('sent', 'Accepted by provider'), ('failed', 'Needs manual follow-up')])
+    delivered_at = models.DateTimeField(null=True, blank=True)

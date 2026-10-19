@@ -17,6 +17,13 @@ class AccessAuditMiddleware:
     def __call__(self, request):
         token = correlation.set(uuid.uuid4())
         try:
+            # Inquiry intake owns its transactions: persist a delivery receipt before
+            # external mail, including failures. Existing account flows remain atomic.
+            if request.path in ['/api/inquiries/', '/api/inquiries/csrf/']:
+                response = self.get_response(request)
+                response['Cache-Control'] = 'no-store'
+                response['X-Request-ID'] = str(correlation.get())
+                return response
             response = self.guard(request)
             if response is None:
                 with transaction.atomic():

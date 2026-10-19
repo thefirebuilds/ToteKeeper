@@ -64,7 +64,7 @@ export function quoteOrder(packages: PackageSelection[], bulky: BulkySelection[]
   const bonuses = new Set<number>()
   bulky.forEach(item => {
     if (!['Bagged artificial tree', 'Snowboard bag', 'Bundled oars', 'Other'].includes(item.type)) throw new Error('Choose a listed bulky-item type or request a custom quote.')
-    if (!Number.isFinite(item.value) || item.value < 0 || item.value > 200) throw new Error('Each registered bulky item has a $200 combined contents-value limit.')
+    if (!Number.isFinite(item.value) || item.value < 0) throw new Error('Enter a valid nonnegative bulky-item contents value.')
     const fits = standardEnvelope(item.dimensions)
     const linked = item.packageIndex === undefined ? undefined : packages[item.packageIndex]
     if (item.packageIndex !== undefined && !linked) throw new Error('Choose an existing package for this bulky item.')
@@ -81,6 +81,7 @@ export function quoteOrder(packages: PackageSelection[], bulky: BulkySelection[]
     quote.reviewReasons.push('Bulky-item handling needs operator approval before payment.')
   })
   if (assessAddress(address) !== 'Approved') quote.reviewReasons.push('The exact service address needs operator review before payment.')
+  if (bulky.length) quote.reviewReasons.push('Bulky-item liability is not finalized; owner decision required before enrollment or payment.')
   quote.reviewReasons.push('Checkout is unavailable: Octagon, hosted payments, and an approved agreement are not connected.')
   quote.lines.forEach(line => { if (line.cadence === 'annual') quote.annualTotal += line.amount; else quote.monthlyTotal += line.amount })
   quote.reviewReasons = [...new Set(quote.reviewReasons)]
@@ -134,8 +135,8 @@ export function registerBonus(pkg: PackageRecord, itemId: string) {
 }
 export function validateAppointment(date: string, window: string, now = new Date()) {
   const parsed = chicagoMidnight(date)
-  // Midnight is conservative: a later slot can be reviewed by Blake rather than promising <48h notice.
-  if (!Number.isFinite(parsed.getTime()) || parsed.getTime() < now.getTime() + POLICY.scheduling.noticeHours * 3600000) throw new Error('Request at least 48 hours ahead.')
+  // Midnight is conservative: a later slot can be reviewed by Blake rather than promising <72h notice.
+  if (!Number.isFinite(parsed.getTime()) || parsed.getTime() < now.getTime() + POLICY.scheduling.noticeHours * 3600000) throw new Error(`Request pickup or delivery at least ${POLICY.scheduling.noticeHours} hours ahead. We will confirm your appointment.`)
   if (POLICY.scheduling.blackoutDates.includes(date)) throw new Error('This date is unavailable.')
   if (!(POLICY.scheduling.windows as readonly string[]).includes(window)) throw new Error('Choose an available evening or weekend window.')
 }

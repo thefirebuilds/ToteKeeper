@@ -1,9 +1,11 @@
 from django.contrib import admin
 from django.urls import include, path
-from portal import views
+from portal import inquiries, views
 from storage.views import health
 
 urlpatterns = [
+    path('api/inquiries/csrf/', inquiries.csrf),
+    path('api/inquiries/', inquiries.submit),
     # Same handlers and authorization; retain legacy URLs.
     path('api/health/', health),
     path('api/stripe/webhook/', views.webhook),

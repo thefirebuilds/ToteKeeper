@@ -5,6 +5,8 @@ from django.db.models import Count, Q
 from django.utils import timezone
 from storage.models import Tote
 from .models import Address, Offering, ServiceWindow, SupportRequest
+from .liability import ACKNOWLEDGMENT
+from .scheduling import notice_hours
 
 
 def available_windows(postal_code, exclude_delivery=None):
@@ -12,7 +14,7 @@ def available_windows(postal_code, exclude_delivery=None):
     if exclude_delivery:
         active &= ~Q(delivery__pk=exclude_delivery)
     queryset = ServiceWindow.objects.filter(area__postal_code=postal_code, area__active=True, blackout=False, starts_at__gt=timezone.now()).annotate(used=Count('delivery', filter=active)).order_by('starts_at')
-    ids = [window.pk for window in queryset if window.used < window.capacity and window.starts_at >= timezone.now()+timedelta(hours=window.lead_hours)]
+    ids = [window.pk for window in queryset if window.used < window.capacity and window.starts_at >= timezone.now()+timedelta(hours=notice_hours(window))]
     return ServiceWindow.objects.filter(pk__in=ids).select_related('area').order_by('starts_at')
 
 
@@ -33,6 +35,7 @@ class EnrollmentForm(forms.Form):
     offering = forms.ModelChoiceField(queryset=Offering.objects.none())
     policy_id = forms.IntegerField(widget=forms.HiddenInput)
     accept = forms.BooleanField(label='I accept the displayed service terms and cancellation policy.')
+    liability_acknowledged = forms.BooleanField(label=ACKNOWLEDGMENT)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
