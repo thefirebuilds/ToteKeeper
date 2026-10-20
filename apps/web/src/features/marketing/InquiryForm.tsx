@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { OWNER } from '../../config/business'
+import { enrollmentLink } from '../../config/customerPortal'
 import { InquirySubmissionError, sendInquiry, type InquiryFields } from '../../services/inquiries'
 import type { InquiryPlan, InquirySelection } from './inquiryContext'
 
-const labels = { undecided: 'Help me decide', small: 'Small', medium: 'Medium', big: 'Big', bulky: 'Bulky item' }
+const labels = { undecided: 'Help me decide', small: 'Small', medium: 'Medium', big: 'Large', bulky: 'Bulky item' }
 const contextLabels = { general: '', summer: 'Summer storage', bulky: 'Bulky-item inquiry', 'service-area': 'Service-area inquiry' }
 function Contact() {
   return <p className="inquiry-contact">Email <a href={`mailto:${OWNER.email}`}>{OWNER.email}</a> or call <a href={OWNER.phoneHref}>{OWNER.phone}</a>.</p>
@@ -54,9 +55,10 @@ export function InquiryForm({ selection, focusRequest, onPlanChange }: { selecti
     <p className="inquiry-reference">Your reference: <strong>{reference}</strong></p><Contact />
   </div>
   return <form className="interest-form" method="post" action="/api/inquiries/" onSubmit={submit} noValidate aria-label="Storage inquiry" aria-busy={sending}>
+    <p>Ready to sign up? <a href={enrollmentLink(selection.plan)}>Enroll online through your customer account</a>. This form sends a question to Blake.</p>
     {contextLabels[selection.context] && <p className="inquiry-context">{contextLabels[selection.context]}</p>}
     <fieldset disabled={sending}>
-      <legend className="sr-only">Get my storage plan</legend>
+      <legend className="sr-only">Ask about storage</legend>
       <label htmlFor="inquiry-name"><span id="inquiry-name-label">Your name</span><input aria-labelledby="inquiry-name-label" ref={nameInput} id="inquiry-name" name="name" required minLength={1} maxLength={100} autoComplete="name" value={values.name} onChange={event => change('name', event.target.value)} aria-invalid={!!fieldError('name')} aria-describedby={errorHint('name')} />{errorText('name')}</label>
       <label htmlFor="inquiry-email"><span id="inquiry-email-label">Email address</span><input aria-labelledby="inquiry-email-label" id="inquiry-email" name="email" type="email" required maxLength={254} autoComplete="email" value={values.email} onChange={event => change('email', event.target.value)} aria-invalid={!!fieldError('email')} aria-describedby={errorHint('email')} />{errorText('email')}</label>
       <div className="form-row"><label htmlFor="inquiry-zip"><span id="inquiry-zip-label">ZIP code</span><input aria-labelledby="inquiry-zip-label" id="inquiry-zip" name="zip_code" required inputMode="numeric" autoComplete="postal-code" pattern="[0-9]{5}(-[0-9]{4})?" maxLength={10} value={values.zip_code} onChange={event => change('zip_code', event.target.value)} aria-invalid={!!fieldError('zip_code')} aria-describedby={errorHint('zip_code') || 'inquiry-area-note'} />{errorText('zip_code')}</label>
@@ -68,7 +70,7 @@ export function InquiryForm({ selection, focusRequest, onPlanChange }: { selecti
       <p id="inquiry-area-note" className="form-disclaimer">Service eligibility uses the active approved ZIP list. Each listed ZIP qualifies in full; plan capacity and confirmed appointments are checked separately.</p>
       <p className="form-disclaimer">Request pickup or delivery at least 72 hours ahead. We’ll confirm your appointment. Minimum notice is not a guaranteed appointment or delivery deadline.</p>
       <p className="form-disclaimer">Tell us what you'd like out of the way. We'll review your area and storage needs, then contact you with a recommended plan and next steps. No payment or commitment.</p>
-      <button className="button button-primary" type="submit" disabled={sending}>{sending ? 'Sending your request...' : 'Get my storage plan'}</button>
+      <button className="button button-primary" type="submit" disabled={sending}>{sending ? 'Sending your request...' : 'Send storage inquiry'}</button>
     </fieldset>
     {error && <div ref={result} tabIndex={-1} role="alert" className="inquiry-error"><p>{error.message}</p>{error.reference && <p className="inquiry-reference">Reference: {error.reference}</p>}<Contact /></div>}
     <p className="form-disclaimer">This is a service inquiry only. You will not be added to a marketing list, and no automated text message will be sent.</p>

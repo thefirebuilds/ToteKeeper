@@ -105,6 +105,12 @@ def enrollment(request):
     account = account_for(request)
     policy = Policy.objects.filter(active=True, published_at__lte=timezone.now()).order_by('-published_at', '-pk').first() if settings.STORAGE_AGREEMENT_FINALIZED else None
     form = EnrollmentForm(request.POST or None, initial={'policy_id': policy.pk if policy else None})
+    if request.method == 'GET':
+        requested_plan = {'small': 'Small', 'medium': 'Medium', 'big': 'Large'}.get(request.GET.get('plan'))
+        if requested_plan:
+            chosen = form.fields['offering'].queryset.filter(name=requested_plan, interval='year').first()
+            if chosen:
+                form.initial['offering'] = chosen.pk
     if request.method == 'POST' and form.is_valid():
         try:
             billing.enroll(request.user, account.pk, form.cleaned_data['offering'].pk, form.cleaned_data['policy_id'], **{key: form.cleaned_data[key] for key in ['accept', 'liability_acknowledged', 'recurring_authorized', 'disputes_acknowledged']})

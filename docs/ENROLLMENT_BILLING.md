@@ -1,6 +1,6 @@
 # Enrollment billing and acceptance
 
-The real customer flow is the Django portal: sign up/sign in, complete Profile, then visit `/enroll/`. The public website inquiry form remains available without contract acceptance. The fictional web demo and optional Node Stripe sandbox are separate and do not open production enrollment.
+The real customer flow is the Django portal: sign up/sign in, complete Profile, then visit `/enroll/`. The public website signup buttons link to the real portal, with recognized annual-plan hints. The separate inquiry form remains available for questions without contract acceptance. Set VITE_CUSTOMER_PORTAL_URL to override the public portal origin when using another deployment layout. The fictional web demo and optional Node Stripe sandbox are separate and do not open production enrollment.
 
 ## Approved new catalog
 

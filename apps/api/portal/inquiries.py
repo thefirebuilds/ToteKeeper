@@ -170,7 +170,7 @@ def submit(request):
         f'Name: {inquiry.name}', f'Email: {inquiry.email}', f'ZIP: {inquiry.zip_code}',
         f'Plan interest: {inquiry.plan}', f'Phone: {inquiry.phone or "Not supplied"}',
         f'Preferred reply: {inquiry.reply_method}', '', 'What they would like to store:', inquiry.description,
-        '', 'Manual review required for capacity, exact-address eligibility, pricing and scheduling.',
+        '', 'Review storage needs, pricing and scheduling. Geographic eligibility uses the approved whole-ZIP list.',
         'This inquiry creates no account, subscription, payment, appointment or marketing enrollment.',
     ])
     message = EmailMessage(subject=f'My Tote Keeper storage inquiry {reference}', body=body,

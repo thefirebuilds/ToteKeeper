@@ -34,7 +34,7 @@
       {% if user.is_staff or user.is_superuser %}
         <a href="{% url 'staff' %}">Octagon console</a><a href="/admin/">Administration</a>
       {% else %}
-        <a href="{% url 'inventory' %}">Inventory</a><a href="{% url 'deliveries' %}">Deliveries</a>
+        {% if not user.customer.portal_account.contract %}<a href="{% url 'enroll' %}">Enroll in storage</a>{% endif %}<a href="{% url 'inventory' %}">Inventory</a><a href="{% url 'deliveries' %}">Deliveries</a>
         <a href="{% url 'billing' %}">Billing</a><a href="{% url 'profile' %}">Account &amp; Security</a><a href="{% url 'help' %}">Help / Contact</a>
       {% endif %}
     </nav>

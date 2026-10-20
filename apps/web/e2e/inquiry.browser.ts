@@ -11,7 +11,7 @@ async function fill(page: import('@playwright/test').Page) {
   await page.getByLabel('What would you like to store?', { exact: true }).fill('Holiday decorations and winter coats')
 }
 
-test('pricing CTA preselects the plan; submission is real, guarded and announces its receipt', async ({ page }) => {
+test('inquiries remain separate from signup, guarded and announce their receipt', async ({ page }) => {
   let calls = 0
   let payload: Record<string, unknown> = {}
   let release: () => void = () => {}
@@ -25,11 +25,13 @@ test('pricing CTA preselects the plan; submission is real, guarded and announces
   await page.goto('/')
   await expect(page.locator('a[href="/portal"]')).toHaveCount(0)
   await expect(page.locator('a[href^="/enroll"]')).toHaveCount(0)
-  await page.locator('.plan-card').nth(2).getByRole('button', { name: 'Get my storage plan' }).click()
+  await expect(page.locator('.plan-card').nth(2).getByRole('link', { name: 'Get my storage plan' })).toHaveAttribute('href', 'http://127.0.0.1:8000/enroll/?plan=big&billing=year')
+  await page.getByRole('button', { name: 'Help me decide', exact: true }).click()
+  await page.getByLabel('Plan interest').selectOption('big')
   await expect(page.getByLabel('Plan interest')).toHaveValue('big')
   await expect(page.getByLabel('Your name', { exact: true })).toBeFocused()
   await fill(page)
-  await page.getByRole('form', { name: 'Storage inquiry' }).getByRole('button', { name: 'Get my storage plan' }).click()
+  await page.getByRole('form', { name: 'Storage inquiry' }).getByRole('button', { name: 'Send storage inquiry' }).click()
   await expect(page.getByRole('button', { name: 'Sending your request...' })).toBeDisabled()
   await page.getByRole('form', { name: 'Storage inquiry' }).dispatchEvent('submit')
   await expect.poll(() => calls).toBe(1)
@@ -40,7 +42,7 @@ test('pricing CTA preselects the plan; submission is real, guarded and announces
   await expect(page.getByRole('status')).toContainText('Requested appointments require confirmation')
   await expect(page.getByRole('status')).toContainText('No subscription, payment, or appointment has been created')
   await expect(page.getByRole('status')).toBeFocused()
-  expect(payload).toMatchObject({ plan: 'big', source: 'pricing-big', context: 'general', reply_method: 'email' })
+  expect(payload).toMatchObject({ plan: 'big', source: 'help-decide', context: 'general', reply_method: 'email' })
   expect(typeof payload.request_key).toBe('string')
   expect(page.url()).not.toContain('customer@example.com')
 })
@@ -54,7 +56,7 @@ test('delivery errors preserve fields and show direct contact; phone replies nee
   await page.getByLabel('Preferred reply method').selectOption('text')
   await page.getByLabel('Phone optional').fill('')
   await expect(page.getByLabel('Preferred reply method')).toHaveValue('email')
-  await page.getByRole('form').getByRole('button', { name: 'Get my storage plan' }).click()
+  await page.getByRole('form').getByRole('button', { name: 'Send storage inquiry' }).click()
   await expect(page.getByRole('alert')).toContainText('contact Blake')
   await expect(page.getByRole('alert')).toBeFocused()
   await expect(page.getByLabel('Your name', { exact: true })).toHaveValue('A Fictional Customer')
@@ -63,9 +65,11 @@ test('delivery errors preserve fields and show direct contact; phone replies nee
 })
 
 test('legacy links keep only recognized selections and all contextual buttons share the form', async ({ page }) => {
+  await page.route('http://127.0.0.1:8000/enroll/**', route => route.fulfill({ contentType: 'text/html', body: '<h1>Customer enrollment</h1>' }))
   await page.goto('/enroll?plan=Medium&email=private@example.com')
-  await expect(page.getByLabel('Plan interest')).toHaveValue('medium')
+  await expect(page).toHaveURL('http://127.0.0.1:8000/enroll/?plan=medium&billing=year')
   expect(page.url()).not.toContain('private')
+  await page.goto('http://127.0.0.1:5187/')
   await page.getByRole('button', { name: 'Ask about summer storage' }).click()
   await expect(page.locator('.inquiry-context')).toHaveText('Summer storage')
   await expect(page.getByLabel('Your name', { exact: true })).toBeFocused()
@@ -102,7 +106,7 @@ test('form is keyboard navigable, has no horizontal overflow and exposes accessi
   await page.keyboard.press('Tab')
   await expect(page.getByLabel('Preferred reply method')).toBeFocused()
   await page.keyboard.press('Tab')
-  await expect(page.getByRole('form').getByRole('button', { name: 'Get my storage plan' })).toBeFocused()
+  await expect(page.getByRole('form').getByRole('button', { name: 'Send storage inquiry' })).toBeFocused()
   await page.keyboard.press('Enter')
   await expect(page.getByLabel('Email address', { exact: true })).toHaveAttribute('aria-invalid', 'true')
   await expect(page.getByRole('alert')).toBeVisible()

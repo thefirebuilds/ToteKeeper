@@ -68,6 +68,15 @@ class AgreementBillingTests(FixtureMixin, TestCase):
         self.assertEqual(self.client.post('/enroll/', data).status_code, 302)
         self.assertEqual(Acceptance.objects.filter(account=self.account).count(), 1)
 
+    def test_public_plan_hint_selects_active_annual_offer_without_acceptance(self):
+        annual = Offering.objects.create(name='Small', version=VERSION+'-year', price_cents=12500,
+            interval='year', storage_allowance=2, capacity=10, state='active', credit_definition='One annual cycle')
+        response = self.client.get('/enroll/?plan=small&billing=year')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['form'].initial['offering'], annual.pk)
+        self.assertFalse(Acceptance.objects.filter(account=self.account).exists())
+        self.assertFalse(Contract.objects.filter(account=self.account).exists())
+
     def test_acceptance_retains_order_packing_actor_and_all_four_controls(self):
         contract = self.enroll()
         acceptance = Acceptance.objects.get(contract=contract)

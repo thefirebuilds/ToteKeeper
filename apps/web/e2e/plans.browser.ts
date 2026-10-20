@@ -13,7 +13,7 @@ async function headingClearsHeader(page: import('@playwright/test').Page, id: st
   expect(top).toBeLessThan(page.viewportSize()!.height / 2)
 }
 
-test('homepage cards link to the matching plan, with matching prices and safe inquiry selection', async ({ page }) => {
+test('homepage cards link to the matching plan, with matching prices and real portal enrollment links', async ({ page }) => {
   for (const [id, name, price] of [['small', 'Small', '$125'], ['medium', 'Medium', '$225'], ['big', 'Large', '$399']]) {
     await page.goto('/#plans')
     const card = page.locator('.plan-card').filter({ has: page.getByRole('heading', { name, exact: true }) })
@@ -26,13 +26,7 @@ test('homepage cards link to the matching plan, with matching prices and safe in
     await headingClearsHeader(page, id)
     const plan = page.getByRole('article', { name, exact: true })
     await expect(plan).toContainText(price)
-    await plan.getByRole('link', { name: /Get my storage plan/ }).click()
-    await expect(page.getByLabel('Plan interest')).toHaveValue(id)
-    await expect(page.getByLabel('Your name', { exact: true })).toBeFocused()
-    expect(new URL(page.url()).searchParams.get('source')).toBe(`pricing-${id}`)
-    await page.goBack()
-    await expect(page).toHaveURL(new RegExp(`/plans#${id}$`))
-    await headingClearsHeader(page, id)
+    await expect(plan.getByRole('link', { name: /Get my storage plan/ })).toHaveAttribute('href', `http://127.0.0.1:8000/enroll/?plan=${id}&billing=year`)
   }
 })
 

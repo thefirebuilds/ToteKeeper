@@ -1,3 +1,4 @@
+import { enrollmentLink } from '../../config/customerPortal'
 import { useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Brand } from '../../components/Brand'
@@ -33,7 +34,7 @@ export function PlansPage() {
 
   return <>
     <a className="policy-skip" href="#plans-main">Skip to plans</a>
-    <header className="site-header"><div className="header-inner"><Brand /><nav aria-label="Plans navigation"><Link to="/#plans">Back to homepage</Link><Link className="button button-primary" to={inquiryLink('undecided')}>Get my storage plan</Link></nav></div></header>
+    <header className="site-header"><div className="header-inner"><Brand /><nav aria-label="Plans navigation"><Link to="/#plans">Back to homepage</Link><a className="button button-primary" href={enrollmentLink()}>Get my storage plan</a></nav></div></header>
     <main className="plans-page" id="plans-main">
       <p className="eyebrow">A LITTLE MORE ROOM. A LITTLE MORE DETAIL.</p>
       <h1 id="plans-title" tabIndex={-1}>Plans &amp; details</h1>
@@ -55,7 +56,7 @@ export function PlansPage() {
             <p>Tote use, initial empty-tote delivery, one packed collection and one packed return each service year, plus the associated empty-tote collection and redelivery.</p>
             {plan.id === 'big' && <p><strong>Annual Large also includes one eligible standard bulky item</strong> on its included visits, subject to handling approval. No extra trip is included.</p>}
             <p><strong>Picture it:</strong> {planUseCases[plan.id]} This is illustrative; what fits depends on the size, shape and packing of your belongings.</p>
-            <Link className="button button-primary" to={inquiryLink(plan.id)}>Get my storage plan<span className="sr-only"> — {plan.name}</span></Link>
+            <a className="button button-primary" href={enrollmentLink(plan.id)}>Get my storage plan<span className="sr-only"> — {plan.name}</span></a>
           </div><PlanVisual image={planImages[plan.id]} />
         </article>)}</div>
       </section>
@@ -90,13 +91,13 @@ export function PlansPage() {
       </section>
 
       <section aria-labelledby="important"><h2 id="important" tabIndex={-1}>Important things to know</h2>
-        <ul><li><strong>Billing:</strong> annual prices are billed annually with automatic renewal; the published policy calls for an annual reminder {POLICY.renewal.annualReminderDays} days ahead. Actual monthly billing is not finalized.</li><li><strong>Visits:</strong> one packed collection and one packed return per service year; a partial return uses that return. Extra packed return-and-recollection cycles are {formatUsd(POLICY.extraCyclePrice)} for both legs, not per tote or per leg.</li><li><strong>Area:</strong> Buda, Kyle and South Austin, and surrounding ZIPs on the active approved list. Each approved ZIP qualifies in full; plan capacity and appointments are checked separately.</li><li><strong>Scheduling:</strong> at least {POLICY.scheduling.noticeHours} hours’ notice, operator confirmation, no home entry. Do not assume an unattended handoff is authorized.</li><li><strong>Packing:</strong> clean, dry, permitted everyday belongings only. Keep cash, jewelry, important documents and irreplaceable items at home. The current published tote weight is up to {SERVICE_CONFIG.maxPackedToteWeightPounds} lb; confirm handling needs with Blake.</li></ul>
+        <ul><li><strong>Billing:</strong> annual prices are billed annually with automatic renewal; the published policy calls for an annual reminder {POLICY.renewal.annualReminderDays} days ahead. Monthly plans have a separate one-time setup fee, as shown above.</li><li><strong>Visits:</strong> one packed collection and one packed return per service year; a partial return uses that return. Extra packed return-and-recollection cycles are {formatUsd(POLICY.extraCyclePrice)} for both legs, not per tote or per leg.</li><li><strong>Area:</strong> Buda, Kyle and South Austin, and surrounding ZIPs on the active approved list. Each approved ZIP qualifies in full; plan capacity and appointments are checked separately.</li><li><strong>Scheduling:</strong> at least {POLICY.scheduling.noticeHours} hours’ notice, operator confirmation, no home entry. Do not assume an unattended handoff is authorized.</li><li><strong>Packing:</strong> clean, dry, permitted everyday belongings only. Keep cash, jewelry, important documents and irreplaceable items at home. The current published tote weight is up to {SERVICE_CONFIG.maxPackedToteWeightPounds} lb; confirm handling needs with Blake.</li></ul>
         <p>{TOTE_LIABILITY_DISCLOSURE} This is not insurance or an automatic payout.</p>
         <p>Published cancellation policy: no cancellation penalty; future renewals stop, one free final return is coordinated immediately, and the committed annual year is not refunded. Final return may be arranged after cancellation and no later than 30 calendar days after the last paid storage period ends, subject to the storage agreement.</p>
-        <p>Read the <Link to="/policies/storage-agreement">Storage Agreement</Link> and <Link to="/policies/packing">Packing and Prohibited Items policy</Link>. Enrollment and payment remain unavailable while the order and acceptance flow is aligned with the updated agreement. An inquiry creates neither.</p>
+        <p>Read the <Link to="/policies/storage-agreement">Storage Agreement</Link> and <Link to="/policies/packing">Packing and Prohibited Items policy</Link>. Enroll through your customer account to review and accept your order before hosted payment. An inquiry creates neither.</p>
       </section>
 
-      <section className="detail-contact" aria-labelledby="get-plan"><h2 id="get-plan" tabIndex={-1}>Get my storage plan</h2><p>Tell Blake what’s taking over your space. We’ll check the fit, approved ZIP, plan capacity, pricing and timing before you commit.</p><div className="detail-actions">{SERVICE_CONFIG.plans.map(plan => <Link className="button button-primary" key={plan.id} to={inquiryLink(plan.id)}>{plan.name} — get my storage plan</Link>)}<Link className="text-link" to={inquiryLink('undecided')}>Help me decide</Link></div><p>Prefer to talk? <a href={`mailto:${OWNER.email}`}>{OWNER.email}</a> · <a href={OWNER.phoneHref}>{OWNER.phone}</a></p></section>
+      <section className="detail-contact" aria-labelledby="get-plan"><h2 id="get-plan" tabIndex={-1}>Get my storage plan</h2><p>Choose a plan in your customer account, confirm your service ZIP and review your order before payment. Need help deciding? Send Blake an inquiry.</p><div className="detail-actions">{SERVICE_CONFIG.plans.map(plan => <a className="button button-primary" key={plan.id} href={enrollmentLink(plan.id)}>{plan.name} — get my storage plan</a>)}<Link className="text-link" to={inquiryLink('undecided')}>Help me decide</Link></div><p>Prefer to talk? <a href={`mailto:${OWNER.email}`}>{OWNER.email}</a> · <a href={OWNER.phoneHref}>{OWNER.phone}</a></p></section>
     </main>
     <footer className="site-footer"><Brand light /><Link to="/#plans">Back to homepage plans</Link><PolicyLinks /></footer>
   </>

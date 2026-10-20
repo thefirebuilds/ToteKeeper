@@ -11,11 +11,7 @@ disclosures. Extended explanations are at `/plans`, with direct plan links
 - Pricing/capacity/policy source: `apps/web/src/config/commercial.ts`, unchanged by
   this task. Annual prices remain $125 / $225 / $399 for 2 / 4 / 10 space credits;
   Large uses one and XL uses two. Cards lead with physical tote quantities.
-- `planContent.ts` derives all full-capacity tote mixes and creates inquiry links
-  using existing allowlisted plan/source/context identifiers only. No personal data
-  is placed in URLs. Plan links return to the existing homepage inquiry, preselected
-  and focused; Help me decide uses `undecided`. No new backend endpoint, acceptance,
-  checkout, payment or public demo conversion path was added.
+- `planContent.ts` derives full-capacity tote mixes and inquiry links for Help me decide and bulky-item questions. Primary plan CTAs use `customerPortal.ts` to open the real portal with only a recognized annual-plan hint; no personal data is included. Inquiries remain separate from agreement acceptance and payment.
 - Anchor navigation focuses the matching heading and reserves space beneath the
   sticky header. Home hash navigation also works when returning from `/plans`.
 
@@ -103,5 +99,4 @@ absence communication, authorized backup and return of belongings upon closure.
 
 Geography update, October 19, 2026: whole-ZIP eligibility now replaces manual exact-
 address review. See SERVICE_AREA_ZIPS.md; plan capacity and confirmed appointments
-remain separate. The public conversion still uses the existing inquiry form while
-the agreement remains a draft.
+remain separate. Primary signup now opens the real customer portal; inquiries remain for questions. Agreement and sandbox activation are documented in ENROLLMENT_BILLING.md and STRIPE_SANDBOX_CATALOG.md.
