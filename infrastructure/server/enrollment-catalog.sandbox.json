@@ -1,0 +1,41 @@
+{
+  "small_month": {
+    "stripe_price_id": "price_1USiSvRZzc1Yv7aecXaJ32Lb",
+    "stripe_delivery_price_id": "price_1USiTRRZzc1Yv7aeEvj0qQ1d",
+    "capacity": 2147483647,
+    "tax_mode": "none",
+    "stripe_setup_price_id": "price_1USiTERZzc1Yv7ae1nF8JJy5"
+  },
+  "small_year": {
+    "stripe_price_id": "price_1USiTBRZzc1Yv7aeDybAueLJ",
+    "stripe_delivery_price_id": "price_1USiTRRZzc1Yv7aeEvj0qQ1d",
+    "capacity": 2147483647,
+    "tax_mode": "none"
+  },
+  "medium_month": {
+    "stripe_price_id": "price_1USiTGRZzc1Yv7ae58pDg3nu",
+    "stripe_delivery_price_id": "price_1USiTRRZzc1Yv7aeEvj0qQ1d",
+    "capacity": 2147483647,
+    "tax_mode": "none",
+    "stripe_setup_price_id": "price_1USiTIRZzc1Yv7aezETmYExS"
+  },
+  "medium_year": {
+    "stripe_price_id": "price_1USiTeRZzc1Yv7aeZoPmcmFl",
+    "stripe_delivery_price_id": "price_1USiTRRZzc1Yv7aeEvj0qQ1d",
+    "capacity": 2147483647,
+    "tax_mode": "none"
+  },
+  "large_month": {
+    "stripe_price_id": "price_1USiTLRZzc1Yv7aeWcCgq0zU",
+    "stripe_delivery_price_id": "price_1USiTRRZzc1Yv7aeEvj0qQ1d",
+    "capacity": 2147483647,
+    "tax_mode": "none",
+    "stripe_setup_price_id": "price_1USiTORZzc1Yv7aervMrfAH6"
+  },
+  "large_year": {
+    "stripe_price_id": "price_1USiTgRZzc1Yv7aeC9PujzcN",
+    "stripe_delivery_price_id": "price_1USiTRRZzc1Yv7aeEvj0qQ1d",
+    "capacity": 2147483647,
+    "tax_mode": "none"
+  }
+}
