@@ -9,7 +9,7 @@ test('discloses liability without restricting permitted contents or requiring in
   await faq.locator('summary').click()
   await expect(faq).toContainText('actual compensable loss, up to $250 per tote')
   await expect(faq).toContainText('Ask your homeowners or renters insurer whether')
-  await expect(page.locator('#oversized')).toContainText('requires an owner decision')
+  await expect(page.locator('#oversized')).toContainText('separate $250 liability limit per registered bulky item')
   await expect(page.locator('#interest input[type="checkbox"]')).toHaveCount(0)
   await expect(page.locator('body')).not.toContainText('$200')
 })

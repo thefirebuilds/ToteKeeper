@@ -6,8 +6,15 @@ from storage.admin import AdministratorOnly, ReadOnlyAdmin
 from . import models
 from .audit import record
 
-for model in [models.Address, models.ServiceArea, models.Policy, models.Offering, models.ServiceWindow, models.SupportRequest]:
+for model in [models.Address, models.Policy, models.Offering, models.ServiceWindow, models.SupportRequest]:
     admin.site.register(model, AdministratorOnly)
+
+
+@admin.register(models.ServiceArea)
+class ServiceAreaAdmin(AdministratorOnly):
+    list_display = ['postal_code', 'name', 'active', 'auto_enrollment']
+    list_filter = ['active', 'auto_enrollment']
+    search_fields = ['postal_code', 'name']
 
 
 @admin.register(models.Account)

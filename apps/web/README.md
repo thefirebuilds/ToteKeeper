@@ -14,7 +14,7 @@ The optional sandbox server requires **Node 22.13+ or Node 24** for built-in SQL
 
 - Existing blue Large/XL images, responsive illustration layouts, blue branding and warm backgrounds are preserved.
 - Sole-proprietor owner Blake Thompson: `blake@totekeeper.com`, `262-880-4570`, with trusted authorized help when needed. No owner photo or facility address is published. Requested pickup/delivery needs at least 72 hours' notice and operator confirmation; evening/weekend availability is subject to scheduling.
-- Buda, Kyle, South Austin; exact-address review before payment. No fabricated ZIP approvals. Storage target 55–80°F, dry shelves, facility-provided pest control, existing packing restrictions.
+- Buda, Kyle, South Austin and surrounding whole ZIPs on the approved allowlist; see ../../docs/SERVICE_AREA_ZIPS.md. ZIP eligibility is separate from plan capacity and appointment confirmation. Storage target 55–80°F, dry shelves, facility-provided pest control, existing packing restrictions.
 - Annual Small $125/2 credits, Medium $225/4, Big $399/10. Actual monthly rates $15/$50/$100 are distinguished from annual monthly equivalents. Monthly enrollment remains disabled pending the setup charge/refundability decision.
 - `/enroll`: independent packages and tote mixes; standard bulky items at $75/year with tote appointments or $125/year standalone; single annual Big bonus; custom items unpriced and in review. Recurring-price summary, separate fictional SMS consents, versioned policy preview and idempotent demo enrollment. No real checkout or approved legal agreement acceptance.
 - `/portal`: fictional inventory, IDs/seals/history, packing acknowledgments, package-scoped requests, empty handling, two-leg $50 extra cycles, concern previews, persistence/reset.

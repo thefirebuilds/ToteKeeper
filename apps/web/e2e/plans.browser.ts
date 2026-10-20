@@ -14,7 +14,7 @@ async function headingClearsHeader(page: import('@playwright/test').Page, id: st
 }
 
 test('homepage cards link to the matching plan, with matching prices and safe inquiry selection', async ({ page }) => {
-  for (const [id, name, price] of [['small', 'Small', '$125'], ['medium', 'Medium', '$225'], ['big', 'Big', '$399']]) {
+  for (const [id, name, price] of [['small', 'Small', '$125'], ['medium', 'Medium', '$225'], ['big', 'Large', '$399']]) {
     await page.goto('/#plans')
     const card = page.locator('.plan-card').filter({ has: page.getByRole('heading', { name, exact: true }) })
     await expect(card).toContainText(price)
@@ -41,8 +41,10 @@ test('direct anchors, comparison, image placeholders and help-me-decide work on 
   await headingClearsHeader(page, 'big')
   await page.reload()
   await headingClearsHeader(page, 'big')
-  await expect(page.getByRole('table')).toContainText('Small')
-  await expect(page.getByRole('table')).toContainText('10 Large or 5 XL')
+  await expect(page.getByRole('table', { name: 'Annual plan comparison' })).toContainText('Small')
+  await expect(page.getByRole('table', { name: 'Annual plan comparison' })).toContainText('10 Large or 5 XL')
+  await expect(page.getByRole('table', { name: 'Month-to-month billing' })).toContainText('$14.95/month')
+  await expect(page.getByRole('table', { name: 'Month-to-month billing' })).toContainText('$75')
   await expect(page.locator('.plan-visual')).toHaveCount(8)
   await expect(page.getByText('Image coming soon.', { exact: true })).toHaveCount(8)
   await expect(page.locator('.plan-visual img')).toHaveCount(0)

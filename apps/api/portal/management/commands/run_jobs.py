@@ -15,6 +15,11 @@ class Command(BaseCommand):
         tick = 0
         while True:
             close_old_connections()
+            from portal.service_cycles import queue_renewal_reminders
+            try:
+                queue_renewal_reminders()
+            except Exception:
+                self.stderr.write('Renewal reminder scheduling failed; inspect and retry before the notice deadline.')
             for command in ['expire_reservations', 'send_notifications'] + (['reconcile_stripe'] if settings.STRIPE_SECRET_KEY and tick % 10 == 0 else []):
                 try:
                     call_command(command, verbosity=0)

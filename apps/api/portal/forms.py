@@ -5,11 +5,16 @@ from django.db.models import Count, Q
 from django.utils import timezone
 from storage.models import Tote
 from .models import Address, Offering, ServiceWindow, SupportRequest
-from .liability import ACKNOWLEDGMENT
+from .agreement import ACKNOWLEDGMENTS
 from .scheduling import notice_hours
+from .service_areas import normalize_zip
 
 
 def available_windows(postal_code, exclude_delivery=None):
+    try:
+        postal_code = normalize_zip(postal_code)
+    except forms.ValidationError:
+        return ServiceWindow.objects.none()
     active = Q(delivery__status__in=['requested', 'awaiting_payment', 'confirmed', 'in_progress'])
     if exclude_delivery:
         active &= ~Q(delivery__pk=exclude_delivery)
@@ -28,14 +33,16 @@ class ProfileForm(forms.Form):
     marketing_consent = forms.BooleanField(required=False, label='Send occasional marketing messages (optional)')
 
     def clean_postal_code(self):
-        return self.cleaned_data['postal_code'].strip().upper()
+        return normalize_zip(self.cleaned_data['postal_code'])
 
 
 class EnrollmentForm(forms.Form):
     offering = forms.ModelChoiceField(queryset=Offering.objects.none())
     policy_id = forms.IntegerField(widget=forms.HiddenInput)
-    accept = forms.BooleanField(label='I accept the displayed service terms and cancellation policy.')
-    liability_acknowledged = forms.BooleanField(label=ACKNOWLEDGMENT)
+    accept = forms.BooleanField(label=ACKNOWLEDGMENTS['accept'])
+    liability_acknowledged = forms.BooleanField(label=ACKNOWLEDGMENTS['liability_acknowledged'])
+    recurring_authorized = forms.BooleanField(label=ACKNOWLEDGMENTS['recurring_authorized'])
+    disputes_acknowledged = forms.BooleanField(label=ACKNOWLEDGMENTS['disputes_acknowledged'])
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -62,6 +69,9 @@ class DeliveryForm(forms.Form):
     key = forms.UUIDField(widget=forms.HiddenInput, initial=uuid.uuid4)
     acknowledge = forms.BooleanField(label='I have reviewed the credit usage or extra charge shown above. This is a request, not a confirmed appointment.')
 
+    def clean_postal_code(self):
+        return normalize_zip(self.cleaned_data['postal_code'])
+
     def __init__(self, *args, account, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['inventory'].queryset = Tote.objects.filter(customer=account.customer, status__in=['registered', 'with_customer', 'in_storage']).exclude(delivery_items__delivery__status__in=['requested', 'awaiting_payment', 'confirmed', 'in_progress']).distinct()
@@ -78,6 +88,9 @@ class RescheduleForm(forms.Form):
 
 
 class AddressForm(forms.ModelForm):
+    def clean_postal_code(self):
+        return normalize_zip(self.cleaned_data['postal_code'])
+
     class Meta:
         model = Address
         fields = ['label', 'address', 'postal_code', 'instructions']

@@ -9,6 +9,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         issues = []
+        if not settings.STORAGE_AGREEMENT_FINALIZED:
+            issues.append('STORAGE_AGREEMENT_FINALIZED must be true to open enrollment.')
         if settings.DEBUG:
             issues.append('DEBUG must be false for launch.')
         for key in ['PUBLIC_BASE_URL', 'STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'STRIPE_PORTAL_CONFIGURATION', 'BUSINESS_PHONE', 'BUSINESS_EMAIL', 'BUSINESS_HOURS']:
@@ -20,11 +22,17 @@ class Command(BaseCommand):
         if not offerings.exists():
             issues.append('Publish at least one approved offering.')
         for offering in offerings:
+            if offering.service_model != 'annual_cycle' or not offering.agreement_version:
+                issues.append(f'Offering {offering.pk} needs the current agreement and 12-month service-cycle model.')
+            if offering.setup_fee_cents and not offering.stripe_setup_price_id:
+                issues.append(f'Offering {offering.pk} needs a one-time setup price mapping.')
             if offering.tax_mode == 'unreviewed' or not offering.stripe_price_id or not offering.credit_definition or not offering.capacity:
                 issues.append(f'Offering {offering.pk} needs tax review, provider mapping, a credit definition and capacity.')
             if offering.extra_delivery_cents and not offering.stripe_delivery_price_id:
                 issues.append(f'Offering {offering.pk} needs an additional delivery price mapping.')
-        if not ServiceArea.objects.filter(active=True).exists() or not ServiceWindow.objects.filter(area__active=True, blackout=False, starts_at__gt=timezone.now()).exists():
+        if not Policy.objects.filter(active=True).exclude(packing_terms='').exclude(packing_version='').exists():
+            issues.append('Publish the versioned packing policy presented with the agreement.')
+        if not ServiceArea.objects.filter(active=True, auto_enrollment=True).exists() or not ServiceWindow.objects.filter(area__active=True, blackout=False, starts_at__gt=timezone.now()).exists():
             issues.append('Configure approved service areas and future available windows.')
         if issues:
             raise CommandError('\n'.join(issues))

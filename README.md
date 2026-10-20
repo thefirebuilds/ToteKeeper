@@ -42,3 +42,7 @@ Customer policy drafts: `/policies/storage-agreement`, `/policies/packing`, and
 before publishing approved terms or enabling enrollment.
 
 Plan explanations and image-placeholder replacement: [Plans & details](docs/PLANS_DETAILS.md).
+
+Automatic ZIP eligibility: [initial list, sources and admin controls](docs/SERVICE_AREA_ZIPS.md).
+
+Enrollment billing setup and retained agreement records: [docs/ENROLLMENT_BILLING.md](docs/ENROLLMENT_BILLING.md).

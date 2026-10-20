@@ -59,7 +59,7 @@ export function quoteOrder(packages: PackageSelection[], bulky: BulkySelection[]
     validateMix(selection)
     const plan = planFor(selection.planId)
     quote.lines.push({ label: `${plan.name} · ${selection.large} Large + ${selection.xl} XL · ${plan.credits} credits`, amount: selection.billing === 'annual' ? plan.annualPrice : plan.monthlyPrice, cadence: selection.billing })
-    if (selection.billing === 'monthly' && (POLICY.monthlySetupCharge.amount === null || POLICY.monthlySetupCharge.refundable === null)) quote.reviewReasons.push('Monthly enrollment is paused until the tote/setup charge and refundability are finalized.')
+    if (selection.billing === 'monthly' && (POLICY.monthlySetupCharge.amount === null || POLICY.monthlySetupCharge.refundable === null)) quote.reviewReasons.push('This disconnected monthly preview does not collect the approved setup charge; use the customer portal for real enrollment.')
   })
   const bonuses = new Set<number>()
   bulky.forEach(item => {

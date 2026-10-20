@@ -1,5 +1,6 @@
 import stripe
 from django.conf import settings
+from .service_areas import enrollment_available
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -106,12 +107,12 @@ def enrollment(request):
     form = EnrollmentForm(request.POST or None, initial={'policy_id': policy.pk if policy else None})
     if request.method == 'POST' and form.is_valid():
         try:
-            billing.enroll(request.user, account.pk, form.cleaned_data['offering'].pk, form.cleaned_data['policy_id'], liability_acknowledged=form.cleaned_data['liability_acknowledged'])
+            billing.enroll(request.user, account.pk, form.cleaned_data['offering'].pk, form.cleaned_data['policy_id'], **{key: form.cleaned_data[key] for key in ['accept', 'liability_acknowledged', 'recurring_authorized', 'disputes_acknowledged']})
         except ValidationError as error:
             form.add_error(None, error)
         else:
             return redirect('billing')
-    return page(request, 'enroll', form=form, policy=policy, offerings=form.fields['offering'].queryset, account=account, available=ServiceArea.objects.filter(postal_code=account.postal_code, active=True).exists())
+    return page(request, 'enroll', form=form, policy=policy, offerings=form.fields['offering'].queryset, account=account, available=enrollment_available(account.postal_code))
 
 
 @login_required
@@ -125,7 +126,7 @@ def billing_page(request):
             estimate = billing.preview(account)
         except (stripe.StripeError, billing.ProviderUnavailable):
             preview_unavailable = True
-    return page(request, 'billing', account=account, contract=contract, invoices=account.invoices.order_by('-created_at'), estimate=estimate, preview_unavailable=preview_unavailable)
+    return page(request, 'billing', account=account, contract=contract, invoices=account.invoices.order_by('-created_at'), acceptances=account.acceptance_set.order_by('-accepted_at'), estimate=estimate, preview_unavailable=preview_unavailable)
 
 
 @login_required
@@ -229,6 +230,7 @@ def photo(request, key):
     response['X-Content-Type-Options'] = 'nosniff'
     response['Content-Security-Policy'] = "default-src 'none'; sandbox"
     response['Cache-Control'] = 'private, no-store'
+    response['X-Content-Type-Options'] = 'nosniff'
     return response
 
 
@@ -366,3 +368,31 @@ def webhook(request):
     except (stripe.StripeError, billing.ProviderUnavailable, ValidationError, Contract.DoesNotExist):
         return HttpResponse(status=503)
     return JsonResponse({'received': True})
+
+
+@login_required
+def acceptance_download(request, pk):
+    account = account_for(request, allow_suspended=True)
+    acceptance = get_object_or_404(account.acceptance_set, pk=pk)
+    import json
+    body = (f'Accepted at: {acceptance.accepted_at.isoformat()}\nAgreement version: {acceptance.policy.version}\n'
+            f'Packing policy version: {acceptance.packing_version}\n\n'
+            + 'ORDER\n' + json.dumps(acceptance.order_snapshot, indent=2) + '\n\n'
+            + acceptance.terms_snapshot + '\n\nPACKING POLICY\n' + acceptance.packing_snapshot
+            + '\n\nACKNOWLEDGMENTS\n' + json.dumps(acceptance.acknowledgments, indent=2))
+    response = HttpResponse(body, content_type='text/plain; charset=utf-8')
+    response['Content-Disposition'] = f'attachment; filename="storage-agreement-{acceptance.pk}.txt"'
+    response['Cache-Control'] = 'private, no-store'
+    response['X-Content-Type-Options'] = 'nosniff'
+    return response
+
+
+@login_required
+def enrollment_documents(request, pk):
+    account_for(request)
+    policy = get_object_or_404(Policy, pk=pk, active=True, published_at__lte=timezone.now())
+    response = HttpResponse(f'Agreement version: {policy.version}\n\n{policy.terms}\n\nPacking policy version: {policy.packing_version}\n\n{policy.packing_terms}\n\nCancellation\n{policy.cancellation}', content_type='text/plain; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="storage-agreement-for-review.txt"'
+    response['Cache-Control'] = 'private, no-store'
+    response['X-Content-Type-Options'] = 'nosniff'
+    return response

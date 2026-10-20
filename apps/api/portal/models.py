@@ -16,6 +16,7 @@ class ServiceArea(models.Model):
     name = models.CharField(max_length=100)
     postal_code = models.CharField(max_length=16, unique=True)
     active = models.BooleanField(default=False)
+    auto_enrollment = models.BooleanField(default=False, help_text='Allow new enrollment for the entire ZIP when this service area is also active. Does not confirm appointments or bypass capacity/terms/payment checks.')
 
     def __str__(self):
         return f'{self.name} · {self.postal_code}'
@@ -25,6 +26,8 @@ class Policy(models.Model):
     version = models.CharField(max_length=60, unique=True)
     terms = models.TextField()
     cancellation = models.TextField()
+    packing_version = models.CharField(max_length=60, blank=True)
+    packing_terms = models.TextField(blank=True)
     active = models.BooleanField(default=False)
     published_at = models.DateTimeField(default=timezone.now)
 
@@ -35,7 +38,7 @@ class Policy(models.Model):
         from django.core.exceptions import ValidationError
         if self.pk and self.acceptance_set.exists():
             old = Policy.objects.get(pk=self.pk)
-            if (old.version, old.terms, old.cancellation) != (self.version, self.terms, self.cancellation):
+            if any(getattr(old, field) != getattr(self, field) for field in ['version', 'terms', 'cancellation', 'packing_version', 'packing_terms']):
                 raise ValidationError('This policy has acceptances. Publish a new version instead of changing its terms.')
 
 
@@ -47,6 +50,10 @@ class Offering(models.Model):
     effective_from = models.DateTimeField(default=timezone.now)
     effective_until = models.DateTimeField(null=True, blank=True)
     price_cents = models.PositiveIntegerField()
+    setup_fee_cents = models.PositiveIntegerField(default=0)
+    stripe_setup_price_id = models.CharField(max_length=120, blank=True)
+    agreement_version = models.CharField(max_length=60, blank=True)
+    service_model = models.CharField(max_length=24, default='legacy', choices=[('legacy', 'Legacy visit credits'), ('annual_cycle', '12-month service cycle')])
     currency = models.CharField(max_length=3, default='usd')
     interval = models.CharField(max_length=8, choices=[('month', 'Monthly'), ('year', 'Annually')])
     storage_allowance = models.PositiveIntegerField()
@@ -77,9 +84,13 @@ class Offering(models.Model):
             raise ValidationError('Effective end must be after the start.')
         if self.pk and self.contract_set.exists():
             old = Offering.objects.get(pk=self.pk)
-            terms = ['price_cents', 'currency', 'interval', 'storage_allowance', 'included_credits', 'credit_definition', 'credits_per_visit', 'credit_valid_days', 'carry_over', 'extra_delivery_cents', 'stripe_price_id', 'stripe_delivery_price_id', 'tax_mode', 'recurring_details']
+            terms = ['price_cents', 'setup_fee_cents', 'stripe_setup_price_id', 'agreement_version', 'service_model', 'currency', 'interval', 'storage_allowance', 'included_credits', 'credit_definition', 'credits_per_visit', 'credit_valid_days', 'carry_over', 'extra_delivery_cents', 'stripe_price_id', 'stripe_delivery_price_id', 'tax_mode', 'recurring_details']
             if any(getattr(old, field) != getattr(self, field) for field in terms):
                 raise ValidationError('Customers have accepted this offering. Create a new version for changed commercial terms.')
+
+    @property
+    def initial_total(self):
+        return self.price_cents + self.setup_fee_cents
 
     @property
     def price(self):
@@ -119,6 +130,18 @@ class Acceptance(models.Model):
     accepted_at = models.DateTimeField(auto_now_add=True)
     terms_snapshot = models.TextField()
     cancellation_snapshot = models.TextField()
+    contract = models.ForeignKey('Contract', null=True, blank=True, on_delete=models.PROTECT, related_name='acceptances')
+    accepted_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT)
+    packing_version = models.CharField(max_length=60, blank=True)
+    packing_snapshot = models.TextField(blank=True)
+    acknowledgments = models.JSONField(default=dict)
+    order_snapshot = models.JSONField(default=dict)
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            from django.core.exceptions import ValidationError
+            raise ValidationError('Acceptance records are immutable. Record a new acceptance instead.')
+        return super().save(*args, **kwargs)
 
 
 class Contract(models.Model):
@@ -134,6 +157,12 @@ class Contract(models.Model):
     payment_status = models.CharField(max_length=30, default='unpaid')
     last_provider_at = models.BigIntegerField(default=0)
     last_paid_period = models.BigIntegerField(default=0)
+    service_started_at = models.DateTimeField(null=True, blank=True)
+    paid_through = models.DateTimeField(null=True, blank=True)
+    cancellation_requested_at = models.DateTimeField(null=True, blank=True)
+    final_return_completed_at = models.DateTimeField(null=True, blank=True)
+    initial_empty_delivered_at = models.DateTimeField(null=True, blank=True)
+    final_return_extension_until = models.DateTimeField(null=True, blank=True)
 
 
 class ServiceWindow(models.Model):
@@ -169,6 +198,7 @@ class Delivery(models.Model):
     assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
     idempotency_key = models.UUIDField(default=uuid.uuid4, unique=True)
+    final_return = models.BooleanField(default=False)
 
 
 class DeliveryItem(models.Model):
@@ -183,9 +213,12 @@ class DeliveryItem(models.Model):
 class CreditGrant(models.Model):
     account = models.ForeignKey(Account, on_delete=models.PROTECT, related_name='credit_grants')
     quantity = models.PositiveIntegerField()
-    expires_at = models.DateTimeField()
+    expires_at = models.DateTimeField(null=True, blank=True)
+    service_address = models.TextField(blank=True)
+    starts_at = models.DateTimeField(null=True, blank=True)
     source = models.CharField(max_length=160, unique=True)
     definition = models.CharField(max_length=300)
+    direction = models.CharField(max_length=8, blank=True, choices=[('', 'Any legacy visit'), ('pickup', 'Packed collection'), ('return', 'Packed return')])
 
 
 class LedgerEntry(models.Model):

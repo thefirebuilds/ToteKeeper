@@ -100,3 +100,8 @@ absence communication, authorized backup and return of belongings upon closure.
   are represented by designed placeholders, not broken image URLs.
 - No backend rules, database records, secrets, provider configuration or deployed
   application were changed in this task. Existing unrelated working edits remain.
+
+Geography update, October 19, 2026: whole-ZIP eligibility now replaces manual exact-
+address review. See SERVICE_AREA_ZIPS.md; plan capacity and confirmed appointments
+remain separate. The public conversion still uses the existing inquiry form while
+the agreement remains a draft.

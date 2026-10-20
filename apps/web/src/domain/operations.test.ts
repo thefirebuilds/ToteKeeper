@@ -61,7 +61,7 @@ describe('package policies', () => {
   })
   it('does not price custom-quote items automatically or collect an invented monthly setup fee', () => {
     const quote = quoteOrder([{ ...selection, billing: 'monthly' }], [{ type: 'Bagged artificial tree', dimensions: [55, 24, 24], value: 100, useBonus: false }], 'Fictional address')
-    expect(quote.monthlyTotal).toBe(15)
+    expect(quote.monthlyTotal).toBe(14.95)
     expect(quote.annualTotal).toBe(0)
     expect(quote.reviewReasons.join(' ')).toMatch(/setup charge/)
     expect(quote.reviewReasons.join(' ')).toMatch(/custom quote/)

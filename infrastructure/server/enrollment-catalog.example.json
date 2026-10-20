@@ -1,0 +1,41 @@
+{
+  "small_month": {
+    "stripe_price_id": "price_REPLACE_small_month",
+    "stripe_delivery_price_id": "price_REPLACE_50_dollar_round_trip",
+    "capacity": 1,
+    "tax_mode": "REQUIRES_REVIEW",
+    "stripe_setup_price_id": "price_REPLACE_small_setup"
+  },
+  "small_year": {
+    "stripe_price_id": "price_REPLACE_small_year",
+    "stripe_delivery_price_id": "price_REPLACE_50_dollar_round_trip",
+    "capacity": 1,
+    "tax_mode": "REQUIRES_REVIEW"
+  },
+  "medium_month": {
+    "stripe_price_id": "price_REPLACE_medium_month",
+    "stripe_delivery_price_id": "price_REPLACE_50_dollar_round_trip",
+    "capacity": 1,
+    "tax_mode": "REQUIRES_REVIEW",
+    "stripe_setup_price_id": "price_REPLACE_medium_setup"
+  },
+  "medium_year": {
+    "stripe_price_id": "price_REPLACE_medium_year",
+    "stripe_delivery_price_id": "price_REPLACE_50_dollar_round_trip",
+    "capacity": 1,
+    "tax_mode": "REQUIRES_REVIEW"
+  },
+  "large_month": {
+    "stripe_price_id": "price_REPLACE_large_month",
+    "stripe_delivery_price_id": "price_REPLACE_50_dollar_round_trip",
+    "capacity": 1,
+    "tax_mode": "REQUIRES_REVIEW",
+    "stripe_setup_price_id": "price_REPLACE_large_setup"
+  },
+  "large_year": {
+    "stripe_price_id": "price_REPLACE_large_year",
+    "stripe_delivery_price_id": "price_REPLACE_50_dollar_round_trip",
+    "capacity": 1,
+    "tax_mode": "REQUIRES_REVIEW"
+  }
+}

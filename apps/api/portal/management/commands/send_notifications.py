@@ -17,7 +17,9 @@ class Command(BaseCommand):
                     continue
                 job.attempts += 1
                 try:
-                    send_mail(job.subject, job.message, None, [job.account.customer.email], fail_silently=False)
+                    sent = send_mail(job.subject, job.message, None, [job.account.customer.email], fail_silently=False)
+                    if sent != 1:
+                        raise RuntimeError('The email provider did not accept the notification.')
                 except Exception:
                     job.save(update_fields=['attempts'])
                     record(None, job, 'Notification delivery failed; queued for retry', account=job.account, outcome='failure')

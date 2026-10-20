@@ -1,116 +1,13 @@
-import { OWNER, POLICY, SERVICE_CONFIG, formatUsd, TOTE_LIABILITY_DISCLOSURE } from '../../config/commercial'
+import { packingPolicy } from './packingPolicy'
+import { storageAgreement } from './storageAgreement'
+import { OWNER } from '../../config/commercial'
 
-export interface PolicySection { id: string; title: string; paragraphs: string[]; items?: string[]; review?: string }
-export interface PolicyDocument { slug: string; title: string; version: string; summary: string; sections: PolicySection[] }
-const version = 'draft-2026-10-18-v2'
+export interface PolicySection { id: string; title: string; paragraphs: string[]; items?: string[]; table?: { headers: string[]; rows: string[][] }; review?: string }
+export interface PolicyDocument { slug: string; title: string; version: string; summary: string; effectiveDate?: string; intro?: string[]; sections: PolicySection[] }
+const version = 'draft-2026-10-19-v3'
 export const policyDocuments: PolicyDocument[] = [
-  {
-    slug: 'storage-agreement', title: 'Storage Agreement / Terms of Service', version,
-    summary: 'Substantive working draft for owner and Texas attorney review. This is not an operative agreement, attorney-approved language, or an offer to accept unfinished terms.',
-    sections: [
-      { id: 'parties', title: '1. Parties, contact and draft status', paragraphs: [
-        `My Tote Keeper is a sole-proprietor, owner-operated storage business run by Blake Thompson. Contact: ${OWNER.email} or ${OWNER.phone}.`,
-        'This draft is provided for review only. Reading it or submitting an inquiry does not create a storage contract, subscription, appointment, or payment authorization. No effective date has been assigned. Existing customers’ accepted agreements are not replaced by this draft.',
-      ], review: 'Confirm the sole proprietor’s contracting name, trade-name authority and business mailing/notice address before adoption. No registration or notice address is established by this draft.' },
-      { id: 'service', title: '2. Service and approved addresses', paragraphs: [
-        'The proposed service is local valet storage: we deliver company-owned attached-lid totes, collect customer-packed belongings, arrange storage, and return belongings by appointment. We do not enter customers’ homes; handoffs take place at the doorstep or driveway.',
-        `Service is offered for approved addresses in Buda, Kyle and South Austin, subject to route capacity and scheduling. The published boundary is ${POLICY.geography.boundary} Exact-address approval is required; a ZIP code alone does not establish eligibility.`,
-        'An inquiry is a request for manual review. Blake must confirm the address, available capacity, applicable pricing and appointment before service is booked.',
-      ] },
-      { id: 'authority', title: '3. Customer eligibility and authority', paragraphs: [
-        'The customer must have authority to place the listed belongings in storage and to authorize their collection and return. Provide accurate contact information, service addresses and descriptions, and identify the person authorized to receive returned belongings.',
-        'Do not tender belongings you are not authorized to store, or prohibited items. Tell Blake before pickup about handling needs that could prevent an ordinary doorstep or driveway handoff.',
-      ], review: 'Confirm contracting capacity/age requirements and a practical way to verify ownership disputes, delegates and authorized recipients. This draft creates no broad indemnity.' },
-      { id: 'appointments', title: '4. Appointments, access and return requests', paragraphs: [
-        'Request pickup or delivery at least 72 hours ahead. We’ll confirm your appointment. Minimum notice is not a guaranteed appointment or delivery deadline. Evening and weekend appointments are offered subject to availability and blackout dates. A requested time is not confirmed until the operator confirms it. There is no guaranteed delivery time or unlimited waiting service.',
-        'Customers request access through scheduled return of their belongings; this is not an offer of unrestricted access to the storage facility. Contact Blake to coordinate a full or partial return and confirm the authorized recipient and address.',
-        'The published service description offers one courtesy reschedule, with a replacement within three days where mutually available. No missed-appointment charge is established by this draft.',
-      ], review: 'Approve appointment-change/cancellation cutoffs and any failed-visit policy. The backend currently uses configurable per-window cutoffs; no fee amount or collection authorization has been finalized. Disclose approved costs before booking.' },
-      { id: 'totes', title: '5. Company totes, identification and return', paragraphs: [
-        'Company totes remain My Tote Keeper property. Annual prepayment includes their use and initial empty-tote delivery at no added charge. Totes are for approved storage use and must be emptied and returned when service ends; ordinary damaged or broken totes are replaced by the business under the published service description.',
-        'A Large tote uses one storage credit and an XL uses two. Credits remain allocated while an assigned tote is with the customer as well as while stored. An XL is one physical tote for the proposed liability limit, despite using two storage credits.',
-        'Tote identification and handoff records should associate the customer, physical tote, service request and custody event. A tamper-evident seal can show signs of opening; it is not a lock or proof of contents, value or condition.',
-      ], review: 'Approve the physical identification/seal process, empty-tote reconciliation and treatment of unreturned company equipment. No replacement charge, deposit or inspection/opening right is granted by this draft.' },
-      { id: 'packing', title: '6. Packing and prohibited belongings', paragraphs: [
-        'Customers pack clean, completely dry, permitted belongings into company totes. Use the Packing and Prohibited Items policy for the full restrictions. Ordinary replaceable seasonal clothing, bedding, decorations and clean, dry camping gear are intended uses.',
-        'Keep hazardous materials, prohibited valuables, cash, jewelry, important original documents and irreplaceable belongings out of storage. These restrictions are independent of the liability limit. The combined value of ordinary permitted contents may exceed $250.',
-      ], review: 'Confirm an authoritative packed-tote weight limit. The site currently publishes up to 50 lb per tote, but handling/weight practices are marked unfinished elsewhere; do not treat that conflict as legal approval.' },
-      { id: 'bulky', title: '7. Separately registered bulky items', paragraphs: [
-        `Standard bulky items require handling approval and fit a packed envelope of 54 × 24 × 24 inches. The published annual prices are ${formatUsd(POLICY.bulky.addOnAnnualPrice)} as an add-on with tote appointments or ${formatUsd(POLICY.bulky.standaloneAnnualPrice)} standalone with one collection and one return. An annual Big package includes one eligible standard bulky item on that package’s included visits, without additional trip allowance.`,
-        'Each bag/item is registered separately. Items outside the standard envelope or handling ability require a separate quote. A bulky-item quote does not add tote capacity or override prohibited-content rules. No numerical bulky-item weight or liability limit has been finalized; the tote liability limit does not automatically apply.',
-      ], review: 'Finalize bulky-item liability, weight/handling approval, associated visit use and add-on renewal/cancellation rules before accepting a bulky-item contract or payment.' },
-      { id: 'custody', title: '8. Custody and documented handoffs', paragraphs: [
-        'The intended attended-handoff model records the physical totes/items, date, recipient or operator, visible exterior condition and relevant seal information. A request submission, photograph, declared value or payment alone is not a completed custody handoff or contents verification.',
-        'Unattended collection or delivery is not authorized by this draft. Do not leave belongings out based only on an online request. Contact Blake for an attended handoff while an unattended-handoff policy remains unapproved.',
-      ], review: 'Specify the exact documented event at which custody starts and ends, including transport, authorized delegates, failed deliveries and empty totes. Approve any unattended process and its risk allocation separately. No new opening, inspection or emergency-access powers are created here.' },
-      { id: 'conditions', title: '9. Storage conditions and care', paragraphs: [
-        'The service is owner-operated, with trusted authorized help when needed, and storage in dry, climate-controlled space, on shelves rather than floors, with facility-provided pest control. The described operating temperature target is 55–80°F, not a guaranteed temperature range.',
-        'These practices are not a promise that belongings cannot be damaged, stolen, exposed to pests, or affected by an interruption. They do not establish insurance coverage or remove duties imposed by applicable law.',
-      ], review: 'Verify facility permissions, actual environmental monitoring, transport procedures and documented custody safeguards. Do not convert operational targets or planned controls into guarantees.' },
-      { id: 'pricing', title: '10. Annual pricing, taxes and renewal', paragraphs: [
-        'Current advertised annual package prices are listed below. These are review-stage offers, not payable terms under this draft. Each package has separate capacity, billing, service year, tote allocation and included visits. Additional packages are independent purchases; the published offer does not promise automatic upgrades or prorated plan changes.',
-        'Annual amounts are billed annually; a displayed monthly equivalent is arithmetic, not a monthly payment plan. Actual monthly billing remains unfinished because its setup charge, refundability and allowance-reset rules are not finalized.',
-        'The proposed annual service renews automatically and the published policy calls for a reminder 30 days before annual renewal. An operative agreement and checkout must disclose the actual renewal price, date, consent and stop-renewal mechanism. Taxes require review; no total is represented here as tax-inclusive.',
-      ], items: SERVICE_CONFIG.plans.map(plan => `${plan.name}: ${formatUsd(plan.annualPrice)}/year, ${plan.credits} storage credits (${plan.examples}).`),
-      review: 'Reconcile published packages with the customer platform’s separately configured offerings, provider prices, tax settings and notification jobs. Confirm renewal-reminder delivery and price-change disclosures before activation.' },
-      { id: 'visits', title: '11. Included service, partial returns and additional cycles', paragraphs: [
-        'The published package service cycle includes initial empty-tote delivery, one collection of packed belongings, one packed return in the service year, collection of empty company totes while belongings are in use, and redelivery of those empties for repacking. Empty-tote handling belongs to that cycle, not unlimited on-demand visits.',
-        `A partial return uses the package’s included packed-return visit, not one free visit per tote. Other packages retain their own included visits. The published additional packed return-and-recollection cycle is ${formatUsd(POLICY.extraCyclePrice)} for both legs together. It is not ${formatUsd(POLICY.extraCyclePrice)} per leg.`,
-        'Size swaps can be arranged without a swap fee during an already scheduled contractual visit, within the package allowance. A separately quoted trip or handling service must have its actual scope and price disclosed and accepted before it is booked or charged.',
-      ], review: 'Launch blocker: The customer platform currently supports offering-defined credits per visit and configurable extra-visit prices, rather than enforcing the published package-cycle model. Select and implement one authoritative entitlement model before binding enrollment. This draft does not silently change either system.' },
-      { id: 'cancellation', title: '12. Cancellation, nonrenewal, refunds and final return', paragraphs: [
-        'Stopping a future renewal, ending active storage, scheduling return of belongings and returning company totes are separate actions. A cancellation request is not a completed physical return.',
-        'Published marketing proposes cancellation at any time without a cancellation penalty, no refund of the committed current month or annual service year, immediate coordination of one free final return even if the usual return was used, and return of emptied company totes. Immediate coordination is not a promise of same-day delivery.',
-        'The account platform currently schedules provider cancellation for the end of the paid term and tells customers to arrange return separately. That differs from the published immediate final-return workflow. This draft does not choose between retaining storage through the paid term and ending service earlier.',
-      ], review: 'Launch blocker: decide whether nonrenewal retains storage through the paid term, how early cancellation differs, when free final return becomes available, and how refunds required by law or business failure are handled. Implement matching customer controls and disclosures before acceptance.' },
-      { id: 'liability', title: '13. Proposed per-tote liability limit — important', paragraphs: [
-        TOTE_LIABILITY_DISCLOSURE,
-        'The intended limit is actual compensable loss, up to $250 per physical tote, subject to a properly reviewed agreement and applicable law. It is not an automatic $250 payment, insurance, or comprehensive protection. It is not an absolute waiver of legal remedies, and this draft does not purport to override nonwaivable rights or legally required exceptions.',
-        'The limitation does not automatically apply to separately registered bulky items. No aggregate per-customer or per-event cap, deductible, valuation formula, claims deadline, or blanket exclusion for every cause is created by this draft.',
-      ], review: 'Texas attorney must approve the scope, business-responsibility standard, legally required exceptions and any right/process to request increased liability. Owner must decide whether compensation covers only legally attributable loss or a broader accidental loss in custody. No increased-liability product, rate or acceptance process is currently finalized.' },
-      { id: 'claims', title: '14. Reporting loss or damage and valuation', paragraphs: [
-        `Contact Blake at ${OWNER.email} or ${OWNER.phone} to report a concern. Describe the affected tote/item, what happened, relevant appointments, and any available photos or records. Keep available evidence so the operator can investigate; the portal’s support and private photo tools can assist where enabled.`,
-        'A declared contents value, inventory photo or exterior handoff record is not a verified appraisal or an agreement to pay that amount. A concern report is not a guaranteed reimbursement decision.',
-      ], review: 'Choose a practical written claims procedure, valuation/evidence basis, acknowledgment and investigation responsibilities, escalation route and any legally supportable deadlines. No replacement-cost or depreciation formula, claim deadline or automatic forfeiture rule is adopted here.' },
-      { id: 'higher-value', title: '15. Higher-value belongings and customer-arranged insurance', paragraphs: [
-        'Ordinary permitted belongings may exceed $250 per tote. Value above the proposed liability limit is at the customer’s risk, subject to the operative agreement and applicable law. Unusually valuable, prohibited and irreplaceable items remain inappropriate for this service regardless of total contents value.',
-        'Ask your homeowners or renters insurer whether your belongings are covered while stored with us and during pickup and delivery. Coverage is not guaranteed by My Tote Keeper. No insurance product is sold or promised by this draft.',
-        'Contact Blake before committing belongings if you need different liability arrangements. A request alone does not increase liability; the required legal process, available arrangements and pricing must be reviewed and finalized first.',
-      ] },
-      { id: 'communications', title: '16. Communications and personal information', paragraphs: [
-        'We use contact details to answer inquiries and manage service. Required account, payment and operational messages are separate from optional marketing permission and optional service reminders. An inquiry is not marketing-list enrollment or consent to automated text messaging.',
-        'The Privacy Notice describes the implemented inquiry, account, payment and upload processing. Customer contact preferences do not remove communications necessary to administer an existing account or address a service problem.',
-      ], review: 'Approve actual communication channels, consent wording and delivery records before launching any marketing or automated SMS program; none is authorized by this draft.' },
-      { id: 'interruptions', title: '17. Interruptions, operator absence and closure', paragraphs: [
-        'Contact Blake if an appointment or return arrangement needs attention. A service interruption does not create a right under this draft to dispose of belongings, sell them, assert a lien, transfer ownership or deem them abandoned.',
-        'Planned absences are communicated to affected customers. Trusted individuals and family can provide authorized backup when needed. If the business closes, customer belongings are returned; the operator will communicate with affected customers and coordinate those returns. No fixed return deadline or recovery guarantee is established by this draft.',
-      ], review: 'Document who is authorized to provide backup, their permitted account/facility access, custody records and customer communication. Finalize practical return coordination and financial treatment for interruptions and closure without inventing deadlines or legal recovery rights. Review notices and rights for nonpayment or genuinely unclaimed goods separately; do not automate disposal.' },
-      { id: 'changes', title: '18. Agreement changes, records and disputes', paragraphs: [
-        `This document is ${version}. It has no operative effective date. Adoption requires the verified contracting identity, completed decisions, owner approval, Texas legal review and a versioned final document.`,
-        'A future acceptance flow must prominently disclose material prices, service restrictions and liability before agreement acceptance and payment. It must record the authenticated customer, accepted version, exact accepted text and timestamp server-side. A separate initially unchecked per-tote liability acknowledgment is required; a basic inquiry requires neither acceptance nor that acknowledgment.',
-        'Do not apply edits retroactively to an accepted agreement. Preserve prior accepted versions and determine how proposed changes and any required new consent will be communicated. This draft chooses no governing-law clause, forum, mandatory arbitration or class-action waiver.',
-      ], review: 'Texas counsel must determine applicable law, dispute procedures and legally effective electronic acceptance/change notices. No approval or enforceability is represented by this draft.' },
-    ],
-  },
-  {
-    slug: 'packing', title: 'Packing and Prohibited Items', version,
-    summary: 'Draft packing policy for owner review, aligned with the published restrictions. It does not create new inspection powers or make an unfinished agreement operative.',
-    sections: [
-      { id: 'everyday', title: 'Everyday belongings, packed clean and dry', paragraphs: ['Pack replaceable seasonal clothing, spare bedding, holiday decorations and clean, dry camping gear in company-owned attached-lid totes. All belongings must be completely dry. Ask Blake before packing anything you are unsure about.', 'Ordinary permitted contents may be worth more than $250 per tote. Contents value is not an eligibility ceiling. Prohibited-item restrictions apply regardless of value.'] },
-      { id: 'prohibited', title: 'Do not pack', paragraphs: ['The following restrictions are separate from the proposed liability limit and apply to bulky items as well as tote contents.'], items: [
-        'Heirlooms, belongings with significant sentimental value, irreplaceable keepsakes, antiques, valuable collectibles, collectible figurines, fine china and valuable fragile items.',
-        'Jewelry, cash, securities and important original documents.',
-        'Food, beverages, pet food, perishables, plants, damp belongings and anything that can spoil, leak, attract pests or grow mold.',
-        'Firearms, ammunition, weapons, explosives, fireworks, fuel, propane cylinders, compressed-gas cartridges, lighter fluid and other flammable or hazardous substances. Camping equipment must be empty of fuel; fuel containers and cartridges are not accepted.',
-        'Loose batteries, power banks, portable power stations, automotive batteries, e-bike batteries and scooter batteries. Remove removable batteries, including from lights and decorations, and do not put them in the tote.',
-        'Damaged, swollen, leaking, defective or recalled batteries or devices containing them. Devices with built-in, nonremovable batteries require approval before packing.',
-      ] },
-      { id: 'capacity', title: 'Tote capacity and safe handling', paragraphs: ['Use the assigned company totes and confirm the packing/handling arrangement before pickup. Large totes use one storage credit; XL totes use two. An XL’s extra room does not change its proposed per-physical-tote liability limit.', 'The current storefront publishes up to 50 lb packed per tote. Other project policy marks weight/handling practices as unfinished, so the authoritative limit still needs owner confirmation. A numerical bulky-item weight limit is not approved.'], review: 'Confirm the packed tote limit, how it is measured and handling refusal/repacking procedure. This draft does not settle the conflicting weight policy or invent bulky-item limits.' },
-      { id: 'bulky-packing', title: 'Bulky belongings require handling approval', paragraphs: ['Provide the item type and packed dimensions before pickup. The standard packed envelope is 54 × 24 × 24 inches. Bag an artificial tree fully in a zipped storage bag; register each bag separately. Items outside the envelope or ordinary handling ability need a custom quote.', 'A quote or annual Big bonus does not override prohibited contents or give extra trips automatically. Bulky-item liability and numerical weight limits remain owner decisions; the tote liability limit does not automatically apply.'] },
-      { id: 'handoff', title: 'Arrange an attended handoff', paragraphs: ['Request pickup or delivery at least 72 hours ahead. We’ll confirm your appointment. Minimum notice is not a guaranteed appointment or delivery deadline. Handoffs are at the doorstep or driveway; there is no home entry. Do not leave loaded totes unattended based only on a request. An approved unattended-handoff policy has not been established by these drafts.', 'Identification, exterior condition and seal records describe the handoff; they do not verify contents or value. No inspection/opening or emergency-access right is granted by this policy.'] },
-      { id: 'value', title: 'Value and questions', paragraphs: [TOTE_LIABILITY_DISCLOSURE, `Keep cash, jewelry, important documents and irreplaceable keepsakes at home. Contact ${OWNER.email} or ${OWNER.phone} before packing a doubtful item. Ask your insurer about storage and transit coverage; do not assume it applies.`] },
-    ],
-  },
+  storageAgreement,
+  packingPolicy,
   {
     slug: 'privacy', title: 'Privacy Notice', version,
     summary: 'Draft notice based on the implementation reviewed for this website and customer portal. Owner must confirm the live configuration and complete the review items before adopting an effective notice.',

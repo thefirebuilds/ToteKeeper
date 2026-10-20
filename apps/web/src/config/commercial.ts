@@ -6,16 +6,16 @@ export const BRAND = {
 
 export const DEMO_PORTAL_ENABLED = true
 
-export const OWNER = { name: 'Blake Thompson', email: 'blake@totekeeper.com', phone: '262-880-4570', phoneHref: 'tel:+12628804570' } as const
+export const OWNER = { name: 'Blake Thompson', email: 'blake@mytotekeeper.com', phone: '262-880-4570', phoneHref: 'tel:+12628804570' } as const
 
 export const POLICY = {
   geography: {
-    mode: 'operator-review',
-    boundary: 'Travis County south of the Colorado River; Hays County north of the Blanco Vista/Blanco River boundary.',
+    mode: 'zip-allowlist',
+    boundary: 'ZIPs overlapping Hays County north of the Blanco River or Travis County south of the Colorado River qualify in full, including addresses outside those boundaries.',
     approvedPolygon: null,
-    zipApprovalEnabled: false,
+    zipApprovalEnabled: true,
   },
-  monthlySetupCharge: { amount: null, refundable: null },
+  monthlySetupCharge: { amount: null, refundable: 'Before initial empty-tote delivery; afterward nonrefundable for voluntary cancellation, except as law requires.' },
   monthlyAllowanceReset: { anchor: null, continuousPaymentQualification: null, minimumPaidMonths: 12 },
   extraCyclePrice: 50,
   bulky: { addOnAnnualPrice: 75, standaloneAnnualPrice: 125, envelopeInches: [54, 24, 24], approvedWeightPounds: null, handlingApprovalRequired: true },
@@ -47,7 +47,7 @@ export const OPERATIONAL_PRACTICES = {
   storageAreaInspections: 'planned',
   professionalPestControl: 'Provided by the storage facility',
   ownerIntroduction: 'Sole-proprietor, owner-operated service by Blake Thompson. Work directly with the person keeping your things.',
-  directContact: 'blake@totekeeper.com · 262-880-4570',
+  directContact: 'blake@mytotekeeper.com · 262-880-4570',
 } as const
 
 export const SERVICE_CONFIG = {
@@ -61,7 +61,7 @@ export const SERVICE_CONFIG = {
     monthlySetupCharge: null,
     annualPrepay: 'Totes are provided for use at no added charge with annual prepayment.',
     ownership: 'Totes remain the property of My Tote Keeper and must be returned when storage ends.',
-    depositHandling: 'The monthly tote/setup charge and its refundability must be finalized before monthly enrollment.',
+    depositHandling: 'Monthly setup is charged once per new package: Small $25, Medium $50, Large $75. It is not a deposit and is waived for annual enrollment.',
   },
   toteFeatures: 'Made in the USA from commercial-grade polyethylene, with attached interlocking flip-top lids, molded carrying handles, and security-tie attachment points. Same-size totes stack when closed and nest when empty.',
   toteCapacityComparison: 'An XL holds about twice as much as a Large and uses two storage credits.',
@@ -102,9 +102,9 @@ export const SERVICE_CONFIG = {
     },
   },
   plans: [
-    { id: 'small', name: 'Small', credits: 2, annualPrice: 125, annualCatalogVersion: 'v1', monthlyPrice: 15, note: 'One less thing underfoot.', examples: '2 Large or 1 XL', featured: false },
-    { id: 'medium', name: 'Medium', credits: 4, annualPrice: 225, annualCatalogVersion: 'v2', monthlyPrice: 50, note: 'Give a closet its job back.', examples: '4 Large, 2 Large + 1 XL, or 2 XL', featured: false },
-    { id: 'big', name: 'Big', credits: 10, annualPrice: 399, annualCatalogVersion: 'v2', monthlyPrice: 100, note: 'Your garage has other ambitions.', examples: '10 Large, 6 Large + 2 XL, or 5 XL', featured: true },
+    { id: 'small', name: 'Small', credits: 2, annualPrice: 125, annualCatalogVersion: 'v1', monthlyPrice: 14.95, monthlySetupFee: 25, monthlyCatalogVersion: 'v2', note: 'One less thing underfoot.', examples: '2 Large or 1 XL', featured: false },
+    { id: 'medium', name: 'Medium', credits: 4, annualPrice: 225, annualCatalogVersion: 'v2', monthlyPrice: 29.95, monthlySetupFee: 50, monthlyCatalogVersion: 'v2', note: 'Give a closet its job back.', examples: '4 Large, 2 Large + 1 XL, or 2 XL', featured: false },
+    { id: 'big', name: 'Large', credits: 10, annualPrice: 399, annualCatalogVersion: 'v2', monthlyPrice: 39.95, monthlySetupFee: 75, monthlyCatalogVersion: 'v2', note: 'Your garage has other ambitions.', examples: '10 Large, 6 Large + 2 XL, or 5 XL', featured: true },
   ],
   oversizedEstimates: [
     { label: '12-foot skeleton, disassembled and packed', estimate: 'Request a quote' },
@@ -133,9 +133,9 @@ export function creditsForToteMix(largeCount: number, xlCount: number) {
 
 export const TOTE_LIABILITY_DISCLOSURE = 'Store everyday belongings, even if their combined value exceeds $250. Our liability for loss or damage is limited to actual contents value, up to $250 per tote, subject to the storage agreement. Value above that limit is at your risk.'
 export const TOTE_LIABILITY_ACKNOWLEDGMENT = 'I understand that the stated liability limit is $250 per tote, subject to the storage agreement and applicable law. Belongings worth more may be stored, but value above that limit is at my risk.'
-export const BULKY_LIABILITY_NOTICE = 'The liability limit for separately registered bulky items has not been finalized and requires an owner decision. The tote limit does not automatically apply.'
+export const BULKY_LIABILITY_NOTICE = 'Liability for a separately registered bulky item is limited to actual proven compensable loss, up to $250 per item, subject to the storage agreement and applicable law. This is not insurance or an automatic payout.'
 export const TOTE_CONTENTS_ACKNOWLEDGMENT = 'I confirm that these belongings are clean and dry and comply with the packing guidelines. This tote contains no prohibited valuables, irreplaceable items, food, perishables, firearms, ammunition, fireworks, fuel, hazardous materials, or unapproved batteries.'
 
-export const formatUsd = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: SERVICE_CONFIG.currency, maximumFractionDigits: 0 }).format(amount)
+export const formatUsd = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: SERVICE_CONFIG.currency, minimumFractionDigits: Number.isInteger(amount) ? 0 : 2, maximumFractionDigits: 2 }).format(amount)
 export const formatMonthlyEquivalent = (annualPrice: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: SERVICE_CONFIG.currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(annualPrice / 12)
 export const formatUsdCents = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: SERVICE_CONFIG.currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)

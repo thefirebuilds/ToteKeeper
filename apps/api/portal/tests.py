@@ -50,13 +50,13 @@ def fixtures():
     Membership.objects.create(user=steward, role='steward')
     for user in [alice, bob]:
         Customer.objects.create(user=user, name=user.username.title(), email=user.email, phone='555-0100', service_address='Fictional Example Address')
-    area = ServiceArea.objects.create(name='Test area', postal_code='00000', active=True)
+    area = ServiceArea.objects.create(name='Test area', postal_code='00000', active=True, auto_enrollment=True)
     offering = Offering.objects.create(name='TEST ONLY', version='1', state='active', capacity=20, price_cents=100, interval='month', storage_allowance=4, included_credits=2, credit_definition='TEST: one credit per visit', extra_delivery_cents=50, stripe_price_id='price_test', stripe_delivery_price_id='price_delivery_test', tax_mode='none')
     for user in [alice, bob]:
         account = user.customer.portal_account
         account.postal_code = area.postal_code
         account.save()
-    policy = Policy.objects.create(version='TEST-ONLY', terms='TEST ONLY', cancellation='TEST ONLY', active=True)
+    policy = Policy.objects.create(version='TEST-ONLY', terms='TEST ONLY', cancellation='TEST ONLY', packing_version='TEST-ONLY', packing_terms='TEST packing policy', active=True)
     start = timezone.now()+timedelta(days=5)
     window = ServiceWindow.objects.create(area=area, starts_at=start, ends_at=start+timedelta(hours=2), capacity=2)
     item = Tote.objects.create(customer=alice.customer, status='registered', label='TEST-ALICE', admin_notes='PRIVATE-NOTE', location='PRIVATE-LOCATION')
@@ -72,7 +72,7 @@ class FixtureMixin:
         self.client.force_login(self.alice, backend='django.contrib.auth.backends.ModelBackend')
 
     def activate(self, credits=2):
-        contract = billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True)
+        contract = billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True, accept=True, recurring_authorized=True, disputes_acknowledged=True)
         contract.status = 'active'
         contract.payment_status = 'paid'
         contract.stripe_subscription_id = 'sub_test'
@@ -155,11 +155,11 @@ class PortalTests(FixtureMixin, TestCase):
             operations.transition(self.bob, delivery.pk, 'canceled')
 
     def test_enrollment_preserves_terms_and_does_not_activate(self):
-        contract = billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True)
+        contract = billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True, accept=True, recurring_authorized=True, disputes_acknowledged=True)
         self.assertEqual(contract.status, 'pending')
         self.assertEqual(contract.payment_status, 'unpaid')
         self.assertEqual(Acceptance.objects.filter(account=self.account).count(), 1)
-        billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True)
+        billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True, accept=True, recurring_authorized=True, disputes_acknowledged=True)
         self.assertEqual(Contract.objects.filter(account=self.account).count(), 1)
         self.offering.price_cents = 900
         self.offering.save()
@@ -171,7 +171,7 @@ class PortalTests(FixtureMixin, TestCase):
     def test_liability_acknowledgment_is_separate_and_required(self):
         from .forms import EnrollmentForm
         from .liability import ACKNOWLEDGMENT
-        data = {'offering': self.offering.pk, 'policy_id': self.policy.pk, 'accept': True}
+        data = {'offering': self.offering.pk, 'policy_id': self.policy.pk, 'accept': True, 'recurring_authorized': True, 'disputes_acknowledged': True}
         form = EnrollmentForm(data)
         self.assertFalse(form.is_valid())
         self.assertIn('liability_acknowledged', form.errors)
@@ -180,7 +180,7 @@ class PortalTests(FixtureMixin, TestCase):
         self.assertFalse(Contract.objects.exists())
         self.client.force_login(self.alice, backend='django.contrib.auth.backends.ModelBackend')
         response = self.client.get('/enroll/')
-        self.assertContains(response, ACKNOWLEDGMENT)
+        self.assertContains(response, 'contractual liability limit is $250 per physical tote')
         self.assertNotIn('checked', response.context['form']['liability_acknowledged'].as_widget())
         response = self.client.post('/enroll/', {**data, 'liability_acknowledged': True})
         self.assertEqual(response.status_code, 302)
@@ -193,7 +193,7 @@ class PortalTests(FixtureMixin, TestCase):
         self.assertContains(response, 'No agreement acceptance or payment is available while terms remain a draft.')
         self.assertNotContains(response, 'name="accept"')
         with self.assertRaisesMessage(ValidationError, 'still a draft'):
-            billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True)
+            billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True, accept=True, recurring_authorized=True, disputes_acknowledged=True)
         with self.assertRaisesMessage(ValidationError, 'still a draft'):
             billing.checkout(self.alice, self.account.pk)
         self.assertFalse(Contract.objects.exists())
@@ -204,7 +204,7 @@ class PortalTests(FixtureMixin, TestCase):
             terms_snapshot=self.policy.terms, cancellation_snapshot=self.policy.cancellation)
         with self.assertRaisesMessage(ValidationError, 'separate liability acknowledgment'):
             billing.checkout(self.alice, self.account.pk)
-        billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True)
+        billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True, accept=True, recurring_authorized=True, disputes_acknowledged=True)
         old.refresh_from_db()
         self.assertEqual(old.terms_snapshot, self.policy.terms)
         self.assertEqual(Acceptance.objects.filter(account=self.account).count(), 2)
@@ -213,20 +213,20 @@ class PortalTests(FixtureMixin, TestCase):
         self.area.active = False
         self.area.save()
         with self.assertRaises(ValidationError):
-            billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True)
+            billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True, accept=True, recurring_authorized=True, disputes_acknowledged=True)
         self.area.active = True
         self.area.save()
         self.offering.capacity = 0
         self.offering.save()
         with self.assertRaises(ValidationError):
-            billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True)
+            billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True, accept=True, recurring_authorized=True, disputes_acknowledged=True)
         self.offering.capacity = 2
         self.offering.save()
         with self.assertRaises(ValidationError):
-            billing.enroll(self.alice, self.account.pk, self.offering.pk, 999, liability_acknowledged=True)
+            billing.enroll(self.alice, self.account.pk, self.offering.pk, 999, liability_acknowledged=True, accept=True, recurring_authorized=True, disputes_acknowledged=True)
 
     def test_no_credentials_has_explicit_failure(self):
-        billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True)
+        billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True, accept=True, recurring_authorized=True, disputes_acknowledged=True)
         with self.assertRaises(billing.ProviderUnavailable):
             billing.options()
 
@@ -449,7 +449,7 @@ class BillingTests(FixtureMixin, TestCase):
         return contract
 
     def test_checkout_is_hosted_and_reused_without_duplicate_subscription(self):
-        contract = billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True)
+        contract = billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True, accept=True, recurring_authorized=True, disputes_acknowledged=True)
         price = {'active': True, 'currency': 'usd', 'unit_amount': 100, 'recurring': {'interval': 'month', 'interval_count': 1}}
         session = StripeObject(id='cs_created', url='https://checkout.stripe.com/test', expires_at=int((timezone.now()+timedelta(hours=1)).timestamp()))
         with patch('stripe.Price.retrieve', return_value=price), patch('stripe.Customer.create', return_value=StripeObject(id='cus_test')), patch('stripe.checkout.Session.create', return_value=session) as create:
@@ -470,7 +470,7 @@ class BillingTests(FixtureMixin, TestCase):
             billing.checkout(self.alice, self.account.pk)
 
     def test_mismatched_price_cannot_charge_customer(self):
-        billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True)
+        billing.enroll(self.alice, self.account.pk, self.offering.pk, self.policy.pk, liability_acknowledged=True, accept=True, recurring_authorized=True, disputes_acknowledged=True)
         with patch('stripe.Price.retrieve', return_value={'active': True, 'currency': 'usd', 'unit_amount': 900}), self.assertRaises(ValidationError):
             billing.checkout(self.alice, self.account.pk)
 
@@ -684,7 +684,7 @@ class ReservationConcurrencyTests(TransactionTestCase):
     def test_same_credit_and_capacity_cannot_be_double_spent(self):
         alice, bob, steward, admin, area, offering, policy, window, item, other = fixtures()
         account = alice.customer.portal_account
-        contract = billing.enroll(alice, account.pk, offering.pk, policy.pk, liability_acknowledged=True)
+        contract = billing.enroll(alice, account.pk, offering.pk, policy.pk, liability_acknowledged=True, accept=True, recurring_authorized=True, disputes_acknowledged=True)
         contract.status = 'active'
         contract.payment_status = 'paid'
         contract.save()

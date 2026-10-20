@@ -1,3 +1,5 @@
+> Update October 19, 2026: the owner supplied agreement 2026-10-19.3, now rendered on the site. See [agreement implementation status](AGREEMENT_2026-10-19.3.md). Earlier unresolved-decision notes below are historical where superseded by that agreement; operational mismatches still require implementation before enrollment.
+
 # Internal: policy owner and Texas attorney review
 
 Status: **DRAFT / NOT APPROVED / DO NOT DEPLOY OR ENABLE ACCEPTANCE**.
@@ -8,7 +10,7 @@ that any proposed term is enforceable. No outside counsel approval is recorded.
 
 The maintainable public text is in
 [documents.ts](../apps/web/src/features/policies/documents.ts), version
-`draft-2026-10-18-v2`, rendered at:
+`draft-2026-10-19-v3`, rendered at:
 
 - `/policies/storage-agreement`
 - `/policies/packing`
@@ -267,3 +269,13 @@ No deployment, live notification or production migration was performed.
   conflicts are listed above rather than silently resolved. `git diff --check` passed.
 - No deployment, live email, payment, account modification, or external integration
   test was performed. Existing unrelated working changes were preserved.
+
+## Geography decision resolved October 19, 2026
+
+The owner approved entire ZIPs with any overlap with Hays north of the Blanco or
+Travis south of the Colorado. Geographic eligibility no longer requires manual
+exact-address approval. See SERVICE_AREA_ZIPS.md for the 46-code initial dataset,
+small-overlap caveats, admin controls and source research. Existing contradictory
+manual geography statements in earlier review notes are superseded by this decision.
+Capacity, scheduling, draft agreement, visit-model and cancellation decisions remain
+separate; no payment or binding acceptance was enabled.

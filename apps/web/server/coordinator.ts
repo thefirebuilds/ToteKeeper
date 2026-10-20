@@ -82,7 +82,7 @@ export class PurchaseCoordinator {
     if (!order.addressApproved || !order.reviewedBy) reasons.push('The exact address needs owner approval.')
     if (order.units.some(unit => unit.bulky.length) && !order.itemsApproved) reasons.push('Bulky items need owner handling approval.')
     if (!order.agreement || !order.agreement.liabilityAcknowledged || !this.readiness.sandboxAgreementEnabled || order.agreement.version !== this.readiness.agreementVersion || order.agreement.contentHash !== this.readiness.agreementContentHash) reasons.push('Review and accept the configured sandbox agreement before checkout.')
-    if (order.units.some(unit => unit.selection?.billing === 'monthly')) reasons.push('Monthly checkout is blocked until the setup charge and refundability are finalized.')
+    if (order.units.some(unit => unit.selection?.billing === 'monthly')) reasons.push('Monthly sandbox checkout does not implement the approved one-time setup charge. Use the production customer portal.')
     if (order.units.some(unit => unit.bulky.some(item => item.type === 'Other' || !standardEnvelope(item.dimensions)))) reasons.push('Custom items require a separately approved quote; instant checkout is unavailable.')
     if (!this.readiness.addOnCouplingApproved && order.units.some(unit => unit.kind === 'Package' && unit.bulky.some(item => !item.useBonus))) reasons.push('Paid bulky add-on renewal/cancellation coupling requires owner approval.')
     const tax = this.readiness.tax

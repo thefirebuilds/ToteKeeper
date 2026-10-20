@@ -7,15 +7,16 @@ export interface CatalogEntry { key: string; product: string; name: string; amou
 export function packagePriceKey(planId: string, billing: 'annual' | 'monthly') {
   const plan = SERVICE_CONFIG.plans.find(entry => entry.id === planId)
   if (!plan) throw new Error('Unrecognized plan.')
-  return `totekeeper_${plan.id}_${billing}_usd_${billing === 'annual' ? plan.annualCatalogVersion : 'v1'}`
+  return `totekeeper_${plan.id}_${billing}_usd_${billing === 'annual' ? plan.annualCatalogVersion : plan.monthlyCatalogVersion}`
 }
 export const CATALOG: CatalogEntry[] = [
   // Retain immutable v1 Prices for existing sandbox orders and subscriptions.
   { key: 'totekeeper_medium_annual_usd_v1', product: 'totekeeper_medium', name: 'Medium storage package', amount: 29900, interval: 'year', classification: 'storage', retired: true },
   { key: 'totekeeper_big_annual_usd_v1', product: 'totekeeper_big', name: 'Big storage package', amount: 59900, interval: 'year', classification: 'storage', retired: true },
+  ...([{ id: 'small', amount: 1500 }, { id: 'medium', amount: 5000 }, { id: 'big', amount: 10000 }].map(plan => ({ key: `totekeeper_${plan.id}_monthly_usd_v1`, product: `totekeeper_${plan.id}`, name: 'Retired monthly sandbox price', amount: plan.amount, interval: 'month' as const, classification: 'storage' as const, retired: true }))),
   ...SERVICE_CONFIG.plans.flatMap(plan => [
     { key: packagePriceKey(plan.id, 'annual'), product: `totekeeper_${plan.id}`, name: `${plan.name} storage package`, amount: plan.annualPrice * 100, interval: 'year' as const, classification: 'storage' as const },
-    { key: `totekeeper_${plan.id}_monthly_usd_v1`, product: `totekeeper_${plan.id}`, name: `${plan.name} storage package`, amount: plan.monthlyPrice * 100, interval: 'month' as const, classification: 'storage' as const },
+    { key: packagePriceKey(plan.id, 'monthly'), product: `totekeeper_${plan.id}`, name: `${plan.name} storage package`, amount: Math.round(plan.monthlyPrice * 100), interval: 'month' as const, classification: 'storage' as const },
   ]),
   { key: 'totekeeper_bulky_addon_annual_usd_v1', product: 'totekeeper_bulky_addon', name: 'Bulky storage with package appointments', amount: POLICY.bulky.addOnAnnualPrice * 100, interval: 'year', classification: 'storage' },
   { key: 'totekeeper_bulky_standalone_annual_usd_v1', product: 'totekeeper_bulky_standalone', name: 'Standalone bulky storage with collection and return', amount: POLICY.bulky.standaloneAnnualPrice * 100, interval: 'year', classification: 'storage' },
