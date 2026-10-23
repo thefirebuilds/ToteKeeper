@@ -6,9 +6,9 @@ A separate, opt-in **local Stripe sandbox integration** now preserves the existi
 
 ## Development
 
-Use Node.js 20.19+ or 22.12+ and npm. Run `npm install`, then `npm run dev`. Checks: `npm run typecheck`, `npm test`, `npm run lint`, `npm run build`. Production preview: `npm run preview`. Build output: `dist/`.
+Use Node.js 24.22.1 or later in the 24.x line and npm (the minimum includes the CVE-2026-111497 Brotli decoder fix). The repository root `.nvmrc` pins the CI version; npm installs reject older runtimes. Run `npm install`, then `npm run dev`. Checks: `npm run typecheck`, `npm test`, `npm run lint`, `npm run build`. Production preview: `npm run preview`. Build output: `dist/`.
 
-The optional sandbox server requires **Node 22.13+ or Node 24** for built-in SQLite. `npm run sandbox:server` starts it on loopback; `npm run stripe:catalog` explicitly syncs versioned test Prices, and `npm run stripe:portal` configures restricted hosted billing. All require local environment setup; none runs automatically during build/deploy.
+The optional sandbox server requires **Node 24.22.1 or later in the 24.x line**, including built-in SQLite. `npm run sandbox:server` starts it on loopback; `npm run stripe:catalog` explicitly syncs versioned test Prices, and `npm run stripe:portal` configures restricted hosted billing. All require local environment setup; none runs automatically during build/deploy.
 
 ## Implemented
 

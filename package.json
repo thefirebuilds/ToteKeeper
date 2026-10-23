@@ -10,5 +10,8 @@
     "test:web": "npm --prefix apps/web test",
     "check:web": "npm --prefix apps/web run typecheck && npm --prefix apps/web run lint",
     "check:connectivity": "node scripts/connectivity.mjs"
+  },
+  "engines": {
+    "node": ">=24.22.1 <25"
   }
 }

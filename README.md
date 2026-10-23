@@ -12,7 +12,7 @@ docs/              Storefront documentation and migration/deployment notes
 
 See [monorepo setup and deployment](docs/MONOREPO.md), [frontend documentation](apps/web/README.md), [backend documentation](apps/api/README.md), and [backend security](apps/api/docs/security.md).
 
-After setup, run **npm run dev** from this directory to start Vite, Django and the existing background worker. No root npm install is necessary. Use Node 24 and Python 3.13.
+After setup, run **npm run dev** from this directory to start Vite, Django and the existing background worker. No root npm install is necessary. Use Node 24.22.1 or later in the 24.x line and Python 3.13. The minimum Node version includes the CVE-2026-111497 Brotli decoder fix. Run `nvm install` and `nvm use` from the repository root if you use nvm; npm installs reject older runtimes.
 
 | Task | Command from repository root |
 | --- | --- |
